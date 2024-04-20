@@ -100,5 +100,5 @@ module Ingestion =
                 | None        -> Error("Hop exceeded for Bucket scheme")
 
 
-	let Linear (params: {| interval: float |}) (store: ticker -> unit): Ingestion =
-	let Bucket (params: {| size: int |}) (store: ticker -> unit): Ingestion =
+    let Linear (params: {| interval: float |}) (store: ticker -> unit): Ingestion =
+    let Bucket (params: {| size: int |}) (store: ticker -> unit): Ingestion =

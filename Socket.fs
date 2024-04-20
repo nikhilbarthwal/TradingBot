@@ -29,3 +29,30 @@ type Socket(Url: string, ticker: ticker, Receiver: string -> unit) =
                 Log.Info(0, $"Closed Socket connection {Url}")
             else
                 Log.Warning(0, $"Unable to close socket connection {Url}")
+
+
+module Socket =
+
+    type struct Adapter =
+        menber this.Timeout: int
+        member this.Recieve(string -> unit)
+        member this.Reconnection(string -> unit)
+        member this.Send(msg: string)
+        member this.Url
+
+    type private Connection(Adapter)
+
+    module Adapter =
+        type Single:
+            member this.Url: string
+            member this.Start(Ticket list -> string list)
+
+        type Multi:
+            member this.Url: ticker -> string
+            member this.Start(Ticker -> string list)
+
+
+
+    module Connection:
+        type Single(Adapter.Single): Data.Source
+        type Multi(Adapter.Multi): Data.Source
