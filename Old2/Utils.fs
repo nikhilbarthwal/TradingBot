@@ -1,24 +1,6 @@
 namespace CryptoBot
 
-open System
-open System.Diagnostics
 
-module Log =
-
-    type private log() =
-        do Trace.Listeners.Add(new ConsoleTraceListener(true)) |> ignore
-
-        member this.Entry (header: string) (id: int, msg: string): unit =
-            let timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
-            let idStr = (if id > 0 then $" %d{id}" else "")
-            Trace.WriteLine($"[{timestamp}] {header}{idStr}: {msg}")
-
-    let private logger = log()
-    let Error(id, msg) = logger.Entry "ERROR" (id, msg) ; exit(1)
-    let Warning = logger.Entry "WARNING"
-    let Info = logger.Entry "INFO"
-
-    let DEBUG (tag: string,msg: string) = logger.Entry "DEBUG" (0, $"{msg}   @{tag}") // DEBUG
 
 
 module Utils =

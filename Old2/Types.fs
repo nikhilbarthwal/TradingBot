@@ -45,9 +45,6 @@ type Broker =
     abstract member Gains: order -> float
     inherit System.IDisposable
 
-type target = {InitialCapital: float; TargetCapital: float; StopLossCapital: float} with
-    override this.ToString() = $"InitialCapital = {this.InitialCapital} / "
-                             + $"TargetCapital = {this.TargetCapital} / "
-                             + $"StopLossCapital = {this.StopLossCapital}"
+
 
 type Strategy = abstract member Run: int -> bool option

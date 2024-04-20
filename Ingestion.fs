@@ -1,7 +1,7 @@
 namespace CryptoBot
 
-open Config
-open Utils
+
+type Ingestion = member Ingest: Bar -> ()
 
 module Ingestion =
 
@@ -100,6 +100,5 @@ module Ingestion =
                 | None        -> Error("Hop exceeded for Bucket scheme")
 
 
-    let Get ticker: Scheme = match IngestionScheme with
-                             | LinearIngestion -> LinearScheme(ticker)
-                             | BucketIngestion -> BucketScheme(ticker)
+	let Linear (params: {| interval: float |}) (store: ticker -> unit): Ingestion =
+	let Bucket (params: {| size: int |}) (store: ticker -> unit): Ingestion =
