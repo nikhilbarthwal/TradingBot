@@ -1,0 +1,25 @@
+# Build artificats
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.bin
+*.exe
+*.pdb
+x86/
+x64/
+
+
+# IDE files
+.vs/
+.idea/
+
+
+# Other non-useful files
+*.log
+*.jpg
+*.ps
+*.pdf
+Temp/
+*.pkl
+
