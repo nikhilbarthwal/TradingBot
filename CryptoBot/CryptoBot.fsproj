@@ -14,4 +14,8 @@
 		<Compile Include="Program.fs"/>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\TradingLib\TradingLib.fsproj" />
+	</ItemGroup>
+
 </Project>

@@ -25,6 +25,9 @@ module Utils =
         let data = System.Collections.Generic.Dictionary<'K, 'V>(l.Length)
         (for x in l do data.Add(x, f x)) ; data.ToImmutableDictionary()
 
+    let Wait (timeout: int) =
+        assert (timeout > 0) ; Threading.Thread.Sleep(timeout * 1000)
+
 
 type Vector<'T> =
     abstract Size: int
@@ -64,7 +67,8 @@ module Log =
             Trace.WriteLine($"[{timestamp}] {header}{tagStr}: {msg}")
 
     let private logger = log()
-    let Error(id, msg) = logger.Entry "ERROR" (id, msg) ; exit(1)
     let Warning = logger.Entry "WARNING"
     let Info = logger.Entry "INFO"
     let Debug = logger.Entry "Debug"
+    let Error(tag, ex: exn, msg) =
+        logger.Entry "ERROR" (tag, msg) ; raise ex

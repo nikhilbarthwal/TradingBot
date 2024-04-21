@@ -12,32 +12,36 @@ module Data =
     type private CircularArray(size: int) =
         let mutable pos: int = 0
         let mutable count: int = 0
-        let data = [| for _ in 1 .. size -> Bar() |]
+        let data: Bar[] = [| for _ in 1 .. size -> Bar() |]
 
         member this.Insert(bar: Bar) = data[pos] <- bar ; count <- count + 1
                                        pos <- pos + 1 ; if pos = size then pos <- 0
 
         member this.Get(buffer: Bar[]): bool =
-            if count < size then false else 
+            if count < size then false else
                 for index in [1 .. size] do
                     let n = (size + pos - index) % size
                     buffer[index - 1] <- data[n]
                 true
 
+    type IStore = abstract member Insert: Bar -> unit
+
     type private Buffer (size: int) =
         let lockObj = System.Object()
         let data = CircularArray(size)
-        member this.Insert(b: Bar) = lock lockObj (fun _ -> data.Insert(b))
-        interface Data with member this.Get(l) = lock lockObj (fun _ -> data.Get(l))
+        interface IStore with
+            member this.Insert(b: Bar) = lock lockObj (fun _ -> data.Insert(b))
+        interface Data with
+            member this.Get(l) = lock lockObj (fun _ -> data.Get(l))
 
-    type Store(buffer: Buffer, preprocessor: Preprocessor) =
-        let preprocess = preprocessor buffer.Insert 
+    type Store(buffer: IStore, preprocessor: Preprocessor) =
+        let preprocess = preprocessor buffer.Insert
         member this.Insert(bar: Bar) = preprocess.Insert(bar)
         static member (+=) (store: Store, bar: Bar) = store.Insert(bar)
 
     type Exchange(tickers: Ticker list, size: int, pre: Preprocessor) =
         let reader, writer =
-            let map = Utils.CreateDictionary(tickers, fun ticker -> Buffer(size))
+            let map = Utils.CreateDictionary(tickers, fun _ -> Buffer(size))
             (Utils.CreateDictionary(tickers, fun ticker -> map[ticker] :> Data),
              Utils.CreateDictionary(tickers, fun ticker -> Store(map[ticker], pre)))
 

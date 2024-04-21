@@ -1,10 +1,10 @@
-namespace CryptoBot
+namespace TradingLib
 
 open System
 
 
 [<Struct>] type OptionType = Call | Put
-    with override this.ToString() = match this with Call -> "Call" | Put -> "Put" 
+    with override this.ToString() = match this with Call -> "Call" | Put -> "Put"
 
 
 type Ticker =
