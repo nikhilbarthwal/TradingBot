@@ -8,7 +8,7 @@
 	<ItemGroup>
 		<Compile Include="Utils.fs"/>
 		<Compile Include="Base.fs"/>
-		<Compile Include="Ingestion.fs"/>
+		<Compile Include="Preprocess.fs" />
 		<Compile Include="Socket.fs"/>
 		<Compile Include="Data.fs"/>
 		<Compile Include="Program.fs"/>

@@ -2,7 +2,6 @@ app=CryptoBot
 version=net8.0
 os=$(shell uname -s)
 sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)
-files=$(wildcard */*.fs */*/*.fs *.bat Makefile */*.fsproj *.sln .gitignore)
 
 ifeq ($(os), Linux)
 	runtime=linux-x64

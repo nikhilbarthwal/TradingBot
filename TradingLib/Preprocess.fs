@@ -1,8 +1,10 @@
 namespace CryptoBot
 
 
-type Ingestion = member Ingest: Bar -> ()
+type Preprocess = abstract member Insert: Bar -> unit
+type Preprocessor = (Bar -> unit) -> Preprocess
 
+(*
 module Ingestion =
 
     type Response = Prices of tick list | Error of string
@@ -100,5 +102,6 @@ module Ingestion =
                 | None        -> Error("Hop exceeded for Bucket scheme")
 
 
-    let Linear (params: {| interval: float |}) (store: ticker -> unit): Ingestion =
-    let Bucket (params: {| size: int |}) (store: ticker -> unit): Ingestion =
+    let Linear (params: {| interval: float |}) (store: ticker -> unit): Preprocess =
+    let Bucket (params: {| size: int |}) (store: ticker -> unit): Preprocess =
+*)
