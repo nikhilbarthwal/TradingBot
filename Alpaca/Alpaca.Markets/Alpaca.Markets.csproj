@@ -1,0 +1,124 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net462;net6.0</TargetFrameworks>
+    <AssemblyOriginatorKeyFile>..\Alpaca.Markets.snk</AssemblyOriginatorKeyFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <SignAssembly>true</SignAssembly>
+    <WarningLevel>5</WarningLevel>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyVersion>8.0.0.0</AssemblyVersion>
+    <FileVersion>8.0.0.0</FileVersion>
+    <Version>8.0.0-alpha1</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageReleaseNotes>
+- Obsolete members cleanup - remove fully obsolete and convert warnings into errors.
+    </PackageReleaseNotes>
+    <Description>C# SDK for Alpaca Trade API https://docs.alpaca.markets/</Description>
+    <RepositoryUrl>https://github.com/alpacahq/alpaca-trade-api-csharp</RepositoryUrl>
+    <Copyright>© 2018-2023 Alpaca Securities LLC. All rights reserved.</Copyright>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>Aplaca API SDK REST WebSocket trading</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://alpaca.markets/</PackageProjectUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <Product>.NET SDK for Alpaca Trade API</Product>
+    <Company>Alpaca Securities LLC</Company>
+    <Authors>Alpaca Securities LLC</Authors>
+    <IncludeSymbols>true</IncludeSymbols>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EnableStrictModeForCompatibleFrameworksInPackage>true</EnableStrictModeForCompatibleFrameworksInPackage>
+    <!--<GenerateCompatibilitySuppressionFile>true</GenerateCompatibilitySuppressionFile>-->
+    <PackageValidationBaselineVersion>7.0.0</PackageValidationBaselineVersion>
+    <EnableStrictModeForCompatibleTfms>true</EnableStrictModeForCompatibleTfms>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>bin\Debug\Alpaca.Markets.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>bin\Release\Alpaca.Markets.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <!-- ReSharper disable once UnknownProperty -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Icon.png" Pack="true" PackagePath="icon.png" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Remove="Alpaca.Markets.csproj.DotSettings" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="AlpacaTradingClient.*.cs">
+      <DependentUpon>AlpacaTradingClient.cs</DependentUpon>
+    </Compile>
+    <Compile Update="Helpers\HttpClientExtensions.*.cs">
+      <DependentUpon>Helpers\HttpClientExtensions.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="IsExternalInit" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="JetBrains.Annotations" Version="2023.3.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>compile; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Threading.Channels" Version="8.0.0" PrivateAssets="compile;contentfiles;build;analyzers" />
+    <PackageReference Include="System.IO.Pipelines" Version="8.0.0" PrivateAssets="compile;contentfiles;build;analyzers" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" PrivateAssets="compile;contentfiles;build;analyzers" />
+    <PackageReference Include="Polly" Version="8.3.1" PrivateAssets="compile;contentfiles;build;analyzers" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetFramework.StartsWith('net4'))">
+    <PackageReference Include="System.Net.Http.WinHttpHandler" Version="8.0.0" PrivateAssets="compile;contentfiles;build;analyzers" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup Condition="!$(TargetFramework.StartsWith('net6'))">
+    <PackageReference Include="Portable.System.DateTimeOnly" Version="8.0.0" PrivateAssets="compile;contentfiles;build;analyzers" />
+  </ItemGroup>
+
+  <Import Project="..\Portable.Helpers\Portable.Helpers.projitems" Label="Shared" />
+
+</Project>
