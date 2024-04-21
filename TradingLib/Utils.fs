@@ -70,5 +70,7 @@ module Log =
     let Warning = logger.Entry "WARNING"
     let Info = logger.Entry "INFO"
     let Debug = logger.Entry "Debug"
-    let Error(tag, ex: exn, msg) =
-        logger.Entry "ERROR" (tag, msg) ; raise ex
+    let Error(tag, msg) =
+        logger.Entry "ERROR" (tag, msg) ; raise (Exception(msg))
+    let Exception(tag, msg) (ex: exn) =
+        logger.Entry "ERROR" (tag, msg) ; raise (Exception(msg, ex))

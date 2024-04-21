@@ -5,10 +5,6 @@ type Data = abstract Get: Bar[] -> bool
 
 module Data =
 
-    type Source =
-        abstract Tickers: Ticker list
-        abstract Data: Dictionary<Ticker, Data>
-
     type private CircularArray(size: int) =
         let mutable pos: int = 0
         let mutable count: int = 0
@@ -46,5 +42,10 @@ module Data =
              Utils.CreateDictionary(tickers, fun ticker -> Store(map[ticker], pre)))
 
         member this.Item with get(ticker: Ticker): Store = writer[ticker]
-        interface Source with member this.Data = reader
-                              member this.Tickers: Ticker list = tickers
+        member this.Data = reader
+        member this.Tickers: Ticker list = tickers
+
+    type Source(exchange: Exchange, destructor: unit -> unit) =
+        member this.Data = exchange.Data
+        member this.Tickers: Ticker list = exchange.Tickers
+        interface System.IDisposable with member this.Dispose() = destructor()

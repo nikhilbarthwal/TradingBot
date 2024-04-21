@@ -1,66 +1,94 @@
 namespace TradingLib
 
-open System.Collections.Generic
+open System.Drawing
 open System.Text.Json
 
 
-type Gemini(tickers: ticker list) =
-    let data = Utils.CreateMap tickers Buffer
-    let mutable bestAsk = Dictionary<string, float option>()
-    let mutable bestBid = Dictionary<string, float option>()
+module Gemini =
 
-    let processEvent (symbol: string) (event: JsonElement): unit =
-        if (event.GetProperty("type").GetString() = "change" &&
-            event.GetProperty("reason").GetString() = "place") then
-            let price: float = float <| event.GetProperty("price").GetString()
-            let side: string = event.GetProperty("side").GetString()
+    type private Connection(difference: float, store: Data.Store,
+                            symbol: string, timeout: int) =
 
-            if side = "ask" then
-                match bestAsk[symbol] with
-                | Some(ask) -> if price < ask then bestAsk[symbol] <- Some(price)
-                | None -> bestAsk[symbol] <- Some(price)
+        let mutable bestAsk: Maybe<float> = No
+        let mutable bestBid: Maybe<float> = No
+        let tag = $"Gemini[{symbol}]"
 
-            if side = "bid" then
-                match bestBid[symbol] with
-                | Some(bid) -> if price > bid then bestBid[symbol] <- Some(price)
-                | None -> bestBid[symbol] <- Some(price)
+        let processEvent (event: JsonElement): unit =
+            if (event.GetProperty("type").GetString() = "change" &&
+                event.GetProperty("reason").GetString() = "place") then
+                let price: float = float <| event.GetProperty("price").GetString()
+                let side: string = event.GetProperty("side").GetString()
 
-    let processMessage (symbol: string) (json: JsonElement): unit =
-        if json.GetProperty("socket_sequence").GetInt64() > 0 then
-            for pos in [1 .. json.GetProperty("events").GetArrayLength()] do
-                processEvent symbol <| json.GetProperty("events").Item(pos - 1)
+                if side = "ask" then
+                    match bestAsk with
+                    | Yes(ask) -> if price < ask then bestAsk <- Yes(price)
+                    | No -> bestAsk <- Yes(price)
 
-    let getPrice (ask: float) (bid: float): float option =
-        if bid >= ask then (Some bid) else
-            let equal = ((100.0 * (ask - bid)) / bid) < Config.AskBidDifference
-            if equal then Some((ask + bid) / 2.0) else None
+                if side = "bid" then
+                    match bestBid with
+                    | Yes(bid) -> if price > bid then bestBid <- Yes(price)
+                    | No -> bestBid <- Yes(price)
 
-    let getTick (symbol: string) (json: JsonElement) (price : float): tick =
-        let time: time = json.GetProperty("timestampms").GetInt64()
-        bestAsk[symbol] <- None ; bestBid[symbol] <- None
-        {Price = Utils.Normalize price ; Time = time}
+        let processMessage (json: JsonElement): unit =
+            if json.GetProperty("socket_sequence").GetInt64() > 0 then
+                for k in [1 .. json.GetProperty("events").GetArrayLength()] do
+                    processEvent <| json.GetProperty("events").Item(k - 1)
 
-    let parse (symbol: string) (message: string): tick option =
-        let json: JsonElement = JsonDocument.Parse(message).RootElement
-        try (processMessage symbol json) with e ->
-            Log.Error(0, $"Unable to parse {message} -> {e.Message}")
+        let getPrice (ask: float) (bid: float) (insert: float -> unit) =
+            if bid >= ask then insert bid else
+                if ((100.0 * (ask - bid)) / bid) < difference then
+                    insert <| (ask + bid) / 2.0
 
-        match bestAsk[symbol], bestBid[symbol] with
-        | Some(ask), Some(bid) -> getPrice ask bid
-        | _ -> None
-        |> Option.map (getTick symbol json)
+        let insertBar (json: JsonElement) (price : float): unit =
+            let time: time = json.GetProperty("timestampms").GetInt64()
+            bestAsk <- No ; bestBid <- No
+            store += Bar {| Open = price; High = price; Low = price; Close = price
+                            Time = time; Volume = -1 |}
 
-    let createSocket (ticker: ticker): System.IDisposable =
-        let symbol: string = match ticker with
-                             | Crypto(symbol) -> symbol
-                             | _ -> Log.Error(0, "Gemini only accepts Crypto")
-        bestAsk.Add(symbol, None) ; bestBid.Add(symbol, None)
-        let url: string = $"wss://api.gemini.com/v1/marketdata/{symbol}USD"
-        new Socket(url, ticker, (parse symbol) >> data[ticker].Update)
+        let parse (message: string): unit =
+            let json: JsonElement = JsonDocument.Parse(message).RootElement
+            try (processMessage json) with e ->
+                Log.Error(tag, $"Unable to parse {message} -> {e.Message}")
 
-    let sockets = Utils.CreateMap tickers createSocket
+            match bestAsk, bestBid with
+            | Yes(ask), Yes(bid) -> getPrice ask bid <| insertBar json
+            | _ -> ()
 
-    interface Exchange with
-        member this.Tickers = tickers
-        member this.Get (ticker:ticker) (buffer:float[]) = data[ticker].Get(buffer)
-        member this.Dispose() = for socket in sockets.Values do socket.Dispose()
+        let reconnect(msg: string) =
+            Log.Warning(tag, $"Reconnecting for {symbol} -> {msg}")
+
+        let socket: System.IDisposable = new Socket {|
+            Url = $"wss://api.gemini.com/v1/marketdata/{symbol}USD"
+            Tag = tag
+            Timeout = timeout
+            Receive = parse
+            Send = fun _ -> ()
+            Reconnection = reconnect |}
+
+        interface System.IDisposable with member this.Dispose() = socket.Dispose()
+
+    type private Exchange(z: {|
+            Tickers: Ticker list
+            Size: int
+            Preprocessor: Preprocessor
+            AskBidDifference: float |}) =
+        do
+            for ticker in z.Tickers do
+                match ticker with
+                | Crypto(symbol) -> ()
+                | _ -> Log.Error("Gemini",
+                                 $"Gemini only supports Crypto, not {ticker}")
+
+        let exchange = Data.Exchange(z.Tickers, z.Size, z.Preprocessor)
+        let connection ticker: System.IDisposable =
+            new Connection(z.AskBidDifference,
+                           exchange[ticker], )
+        let connections = Utils.CreateDictionary(z.Tickers, connection)
+
+        member this.Exchange = exchange
+        member this.Dispose() =
+            for ticker in z.Tickers do connections[ticker].Dispose()
+
+        interface System.IDisposable with member this.Dispose() = this.Dispose()
+
+    let Source z = let e = new Exchange(z) in new Data.Source(e.Exchange, e.Dispose)

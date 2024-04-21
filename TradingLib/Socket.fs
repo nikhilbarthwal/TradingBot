@@ -3,37 +3,34 @@ namespace TradingLib
 open Websocket.Client
 
 
-module Socket =
+type Socket (p: {|
+        Url: string
+        Timeout: int
+        Receive: string -> unit
+        Reconnection: string -> unit
+        Send: string -> unit
+        Tag: string |}) =
 
-    type Adapter =
-        abstract Url: string
-        abstract Timeout: int
-        abstract Receive: string -> unit
-        abstract Reconnection: string -> unit
-        abstract Send: string -> unit
+    let client, reconnect, receive, task =
+        try
+            let cl = new WebsocketClient(System.Uri(p.Url))
+            cl.ReconnectTimeout <- System.TimeSpan.FromSeconds(p.Timeout)
+            let rc = System.ObservableExtensions.Subscribe(
+                cl.ReconnectionHappened,
+                fun info -> p.Reconnection(info.Type.ToString()))
+            let rv = System.ObservableExtensions.Subscribe(
+                cl.MessageReceived, fun msg -> p.Receive(msg.Text))
+            (cl, rc, rv, cl.Start())
+        with ex ->
+            Log.Exception(p.Tag, $"Exception in {p.Url} socket connection") ex
 
-    type Connection(adapter: Adapter, tag: string) =
-        let url = adapter.Url
-        let client, reconnect, receive, task =
-            try
-                let cl = new WebsocketClient(System.Uri(adapter.Url))
-                cl.ReconnectTimeout <- System.TimeSpan.FromSeconds(adapter.Timeout)
-                let rc = System.ObservableExtensions.Subscribe(
-                    cl.ReconnectionHappened,
-                    fun info -> adapter.Reconnection(info.Type.ToString()))
-                let rv = System.ObservableExtensions.Subscribe(
-                    cl.MessageReceived, fun msg -> adapter.Receive(msg.Text))
-                (cl, rc, rv, cl.Start())
-            with ex ->
-                Log.Error(tag, ex, $"Exception in {url} socket connection -> {ex}")
+    member this.Send (msg:string) = client.Send msg
 
-        member this.Send (msg:string) = client.Send msg
-
-        interface System.IDisposable with
-            member this.Dispose() =
-                receive.Dispose() ; reconnect.Dispose() ; client.Dispose()
-                Utils.Wait(adapter.Timeout)
-                if task.IsCompleted then
-                    Log.Info(tag, $"Closed Socket connection for {url}")
-                else
-                    Log.Warning(tag, $"Unable to close socket connection for {url}")
+    interface System.IDisposable with
+        member this.Dispose() =
+            receive.Dispose() ; reconnect.Dispose() ; client.Dispose()
+            Utils.Wait(p.Timeout)
+            if task.IsCompleted then
+                Log.Info(p.Tag, $"Closed Socket connection for {p.Url}")
+            else
+                Log.Warning(p.Tag, $"Unable to close socket connection for {p.Url}")
