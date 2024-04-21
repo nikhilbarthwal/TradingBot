@@ -1,21 +1,13 @@
 namespace TradingLib
 
 
-type Preprocess = abstract member Insert: Bar -> unit
-type Preprocessor = (Bar -> unit) -> Preprocess
+type Preprocessor = abstract member Insert: (Bar -> unit) -> Bar -> unit
 
 (*
-module Ingestion =
+module Preprocessor =
 
-    type Response = Prices of tick list | Error of string
 
-    type Scheme =
-        abstract member Initial: tick -> Response
-        abstract member Update: tick -> tick -> Response
-
-    let private floor (t:time) = t + BufferInterval - (t % BufferInterval)
-
-    type private LinearScheme(ticker: ticker) =
+    type private LinearScheme(ticker: Ticker) =
 
         let prices (current:tick) (previous: tick): tick list =
             let dTime  = current.Time  - previous.Time
@@ -43,6 +35,8 @@ module Ingestion =
                 | 0L -> Prices([])
                 | d when d < ResetThresholdTime -> Prices(prices current previous)
                 | _ -> Error("Stream Threshold exceeded for Linear scheme")
+
+    let private floor (t:time) = t + BufferInterval - (t % BufferInterval)
 
     type private Buckets(size:int) =
 

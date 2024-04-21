@@ -1,13 +1,12 @@
 namespace TradingLib
 
-open System.Drawing
 open System.Text.Json
 
 
 module Gemini =
 
-    type private Connection(difference: float, store: Data.Store,
-                            symbol: string, timeout: int) =
+    type private Connection(
+        difference: float, store: Data.Buffer, symbol: string, timeout: int) =
 
         let mutable bestAsk: Maybe<float> = No
         let mutable bestBid: Maybe<float> = No
@@ -76,9 +75,9 @@ module Gemini =
         do
             for ticker in z.Tickers do
                 match ticker with
-                | Crypto(symbol) -> ()
+                | Crypto _ -> ()
                 | _ -> Log.Error("Gemini",
-                                 $"Gemini only supports Crypto, not {ticker}")
+                                $"Gemini only supports Crypto, not {ticker}")
 
         let exchange = Data.Exchange(z.Tickers, z.Size, z.Preprocessor)
         let connection ticker: System.IDisposable = new Connection(

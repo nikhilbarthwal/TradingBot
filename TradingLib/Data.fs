@@ -22,7 +22,7 @@ module Data =
 
     type IStore = abstract member Insert: Bar -> unit
 
-    type private Buffer (size: int) =
+    type private Store (size: int) =
         let lockObj = System.Object()
         let data = CircularArray(size)
         interface IStore with
@@ -30,18 +30,17 @@ module Data =
         interface Data with
             member this.Get(l) = lock lockObj (fun _ -> data.Get(l))
 
-    type Store(buffer: IStore, preprocessor: Preprocessor) =
-        let preprocess = preprocessor buffer.Insert
-        member this.Insert(bar: Bar) = preprocess.Insert(bar)
-        static member (+=) (store: Store, bar: Bar) = store.Insert(bar)
+    type Buffer(buffer: IStore, preprocessor: Preprocessor) =
+        member this.Insert = preprocessor.Insert buffer.Insert
+        static member (+=) (store: Buffer, bar: Bar) = store.Insert(bar)
 
     type Exchange(tickers: Ticker list, size: int, pre: Preprocessor) =
         let reader, writer =
-            let map = Utils.CreateDictionary(tickers, fun _ -> Buffer(size))
+            let map = Utils.CreateDictionary(tickers, fun _ -> Store(size))
             (Utils.CreateDictionary(tickers, fun ticker -> map[ticker] :> Data),
-             Utils.CreateDictionary(tickers, fun ticker -> Store(map[ticker], pre)))
+             Utils.CreateDictionary(tickers, fun ticker -> Buffer(map[ticker], pre)))
 
-        member this.Item with get(ticker: Ticker): Store = writer[ticker]
+        member this.Item with get(ticker: Ticker): Buffer = writer[ticker]
         member this.Data = reader
         member this.Tickers: Ticker list = tickers
 
