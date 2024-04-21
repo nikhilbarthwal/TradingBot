@@ -1,4 +1,4 @@
-namespace CryptoBot
+namespace TradingLib
 
 
 type Preprocess = abstract member Insert: Bar -> unit

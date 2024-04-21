@@ -11,6 +11,7 @@
 		<Compile Include="Preprocess.fs" />
 		<Compile Include="Socket.fs"/>
 		<Compile Include="Data.fs"/>
+        <Compile Include="Adapters/Gemini.fs"/>
 	</ItemGroup>
 
 </Project>

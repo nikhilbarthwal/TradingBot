@@ -1,7 +1,8 @@
-namespace CryptoBot
+namespace TradingLib
 
 open System.Collections.Generic
 open System.Text.Json
+
 
 type Gemini(tickers: ticker list) =
     let data = Utils.CreateMap tickers Buffer

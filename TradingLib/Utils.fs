@@ -1,4 +1,4 @@
-namespace CryptoBot
+namespace TradingLib
 
 open System
 open System.Diagnostics

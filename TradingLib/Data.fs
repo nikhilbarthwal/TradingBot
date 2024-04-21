@@ -1,4 +1,4 @@
-namespace CryptoBot
+namespace TradingLib
 
 
 type Data = abstract Get: Bar[] -> bool
