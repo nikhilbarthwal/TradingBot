@@ -71,7 +71,8 @@ module Gemini =
             Tickers: Ticker list
             Size: int
             Preprocessor: Preprocessor
-            AskBidDifference: float |}) =
+            AskBidDifference: float
+            Timeout: int |}) =
         do
             for ticker in z.Tickers do
                 match ticker with
@@ -80,9 +81,8 @@ module Gemini =
                                  $"Gemini only supports Crypto, not {ticker}")
 
         let exchange = Data.Exchange(z.Tickers, z.Size, z.Preprocessor)
-        let connection ticker: System.IDisposable =
-            new Connection(z.AskBidDifference,
-                           exchange[ticker], )
+        let connection ticker: System.IDisposable = new Connection(
+            z.AskBidDifference, exchange[ticker], ticker.Symbol,  z.Timeout)
         let connections = Utils.CreateDictionary(z.Tickers, connection)
 
         member this.Exchange = exchange
