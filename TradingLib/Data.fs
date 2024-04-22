@@ -25,27 +25,25 @@ module Data =
     type IStore = abstract member Insert: Bar -> unit
                   abstract member Reset: unit -> unit
 
-    type private Store (size: int) =
-        let lockObj = System.Object()
+    type private Store(size: int, preprocessor: Preprocessor) =
+        let object = System.Object()
         let data = CircularArray(size)
+        let insert(bar) = lock object (fun _ -> data.Insert(bar))
+        let reset() = lock object (fun _ -> data.Reset())
         interface IStore with
-            member this.Insert(b: Bar) = lock lockObj (fun _ -> data.Insert(b))
-            member this.Reset() = lock lockObj (fun _ -> data.Reset())
+            member this.Insert(bar: Bar) =
+                if not(preprocessor.Insert insert bar) then reset()
+            member this.Reset() = reset()
         interface Data with
-            member this.Get(l) = lock lockObj (fun _ -> data.Get(l))
+            member this.Get(l) = lock object (fun _ -> data.Get(l))
 
-    type Buffer(buffer: IStore, preprocessor: Preprocessor) =
-        member this.Insert bar =
-            if not(preprocessor.Insert buffer.Insert bar) then buffer.Reset()
-        static member (+=) (buffer: Buffer, bar: Bar) = buffer.Insert(bar)
-
-    type Exchange(tickers: Ticker list, size: int, pre: Preprocessor) =
+    type Exchange(tickers: Ticker list, size: int, preprocessor: Preprocessor) =
         let reader, writer =
-            let map = Utils.CreateDictionary(tickers, fun _ -> Store(size))
+            let map = Utils.CreateDictionary(tickers, fun _ -> Store(size, preprocessor))
             (Utils.CreateDictionary(tickers, fun ticker -> map[ticker] :> Data),
-             Utils.CreateDictionary(tickers, fun ticker -> Buffer(map[ticker], pre)))
+             Utils.CreateDictionary(tickers, fun ticker -> map[ticker] :> IStore))
 
-        member this.Item with get(ticker: Ticker): Buffer = writer[ticker]
+        member this.Item with get(ticker: Ticker): IStore = writer[ticker]
         member this.Data = reader
         member this.Tickers: Ticker list = tickers
 

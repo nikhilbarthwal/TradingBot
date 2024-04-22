@@ -49,4 +49,28 @@ module Socket =
 
         let Singular(z: Adapter.Singular): Source =
         let Multi(z: Adapter.Singular): Source =
+
+
+singularAdapter
+- Url: string
+- Tickers list
+- Timeout
+- Receiver(string, ticker -> bat -> unit)
+- Reconnection(string -> unit)
+- Send(msg -> ())
+- Initialze( unit -> unit)
+- Start(ticker -> unit)
+- Dispose()
+
+
+multiAdapter
+- Url: string -> string
+- Tickers list
+- Timeout
+- Receiver(ticker, string, bar -> unit)
+- Reconnection(ticker -> string -> unit)
+- Send(ticker -> msg -> ())
+- Start(ticker -> unit)
+- Dispose()
+
 *)

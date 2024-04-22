@@ -1,6 +1,6 @@
 namespace TradingLib
 
-
+//TODO: Rename Preprocess to Buffer
 type Preprocessor = abstract member Insert: (Bar -> unit) -> Bar -> bool
 
 (*
