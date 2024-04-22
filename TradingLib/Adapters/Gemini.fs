@@ -69,7 +69,7 @@ module Gemini =
     type private Exchange(z: {|
             Tickers: Ticker list
             Size: int
-            Preprocessor: Preprocessor
+            Preprocessor: Buffer
             AskBidDifference: float
             Timeout: int |}) =
         do

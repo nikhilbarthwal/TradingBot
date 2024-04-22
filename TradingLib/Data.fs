@@ -25,21 +25,21 @@ module Data =
     type IStore = abstract member Insert: Bar -> unit
                   abstract member Reset: unit -> unit
 
-    type private Store(size: int, preprocessor: Preprocessor) =
+    type private Store(size: int, buffer: Buffer) =
         let object = System.Object()
         let data = CircularArray(size)
         let insert(bar) = lock object (fun _ -> data.Insert(bar))
         let reset() = lock object (fun _ -> data.Reset())
         interface IStore with
             member this.Insert(bar: Bar) =
-                if not(preprocessor.Insert insert bar) then reset()
+                if not(buffer.Insert insert bar) then reset()
             member this.Reset() = reset()
         interface Data with
             member this.Get(l) = lock object (fun _ -> data.Get(l))
 
-    type Exchange(tickers: Ticker list, size: int, preprocessor: Preprocessor) =
+    type Exchange(tickers: Ticker list, size: int, buffer: Buffer) =
         let reader, writer =
-            let map = Utils.CreateDictionary(tickers, fun _ -> Store(size, preprocessor))
+            let map = Utils.CreateDictionary(tickers, fun _ -> Store(size, buffer))
             (Utils.CreateDictionary(tickers, fun ticker -> map[ticker] :> Data),
              Utils.CreateDictionary(tickers, fun ticker -> map[ticker] :> IStore))
 
