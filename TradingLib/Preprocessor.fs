@@ -1,7 +1,7 @@
 namespace TradingLib
 
 
-type Preprocessor = abstract member Insert: (Bar -> unit) -> Bar -> unit
+type Preprocessor = abstract member Insert: (Bar -> unit) -> Bar -> bool
 
 (*
 module Preprocessor =

@@ -34,3 +34,20 @@ type Socket (p: {|
                 Log.Info(p.Tag, $"Closed Socket connection for {p.Url}")
             else
                 Log.Warning(p.Tag, $"Unable to close socket connection for {p.Url}")
+
+(*
+module Socket =
+
+	type private Connection() =
+
+	module Adapter =
+
+		type Singular =
+		type Multi =
+		
+	module Source =
+	
+		let Singular(z: Adapter.Singular): Source =
+		let Multi(z: Adapter.Singular): Source =
+*)
+

@@ -13,6 +13,8 @@ module Data =
         member this.Insert(bar: Bar) = data[pos] <- bar ; count <- count + 1
                                        pos <- pos + 1 ; if pos = size then pos <- 0
 
+        member this.Reset() = count <- 0 ; pos <- 0
+
         member this.Get(buffer: Bar[]): bool =
             if count < size then false else
                 for index in [1 .. size] do
@@ -21,18 +23,21 @@ module Data =
                 true
 
     type IStore = abstract member Insert: Bar -> unit
+                  abstract member Reset: unit -> unit
 
     type private Store (size: int) =
         let lockObj = System.Object()
         let data = CircularArray(size)
         interface IStore with
             member this.Insert(b: Bar) = lock lockObj (fun _ -> data.Insert(b))
+            member this.Reset() = lock lockObj (fun _ -> data.Reset())
         interface Data with
             member this.Get(l) = lock lockObj (fun _ -> data.Get(l))
 
     type Buffer(buffer: IStore, preprocessor: Preprocessor) =
-        member this.Insert = preprocessor.Insert buffer.Insert
-        static member (+=) (store: Buffer, bar: Bar) = store.Insert(bar)
+        member this.Insert bar =
+            if not(preprocessor.Insert buffer.Insert bar) then buffer.Reset()
+        static member (+=) (buffer: Buffer, bar: Bar) = buffer.Insert(bar)
 
     type Exchange(tickers: Ticker list, size: int, pre: Preprocessor) =
         let reader, writer =
@@ -44,7 +49,7 @@ module Data =
         member this.Data = reader
         member this.Tickers: Ticker list = tickers
 
-    type Source(exchange: Exchange, destructor: unit -> unit) =
-        member this.Data = exchange.Data
-        member this.Tickers: Ticker list = exchange.Tickers
-        interface System.IDisposable with member this.Dispose() = destructor()
+    type Source =
+        inherit System.IDisposable
+        abstract Data: Dictionary<Ticker, Data>
+        abstract Tickers: Ticker list
