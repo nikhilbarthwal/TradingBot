@@ -38,16 +38,15 @@ type Socket (p: {|
 (*
 module Socket =
 
-	type private Connection() =
+    type private Connection() =
 
-	module Adapter =
+    module Adapter =
 
-		type Singular =
-		type Multi =
-		
-	module Source =
-	
-		let Singular(z: Adapter.Singular): Source =
-		let Multi(z: Adapter.Singular): Source =
+        type Singular =
+        type Multi =
+
+    module Source =
+
+        let Singular(z: Adapter.Singular): Source =
+        let Multi(z: Adapter.Singular): Source =
 *)
-
