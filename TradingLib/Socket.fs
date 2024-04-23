@@ -49,7 +49,7 @@ module Socket =
             abstract Start: Ticker -> unit
             abstract Buffer: Buffer
             abstract Size: int
-        
+
         type Single =
             inherit Common
             abstract Url: string

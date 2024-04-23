@@ -4,12 +4,11 @@ open System.Text.Json
 
 
 module Gemini =
-    
+
     type private Parser(tag: string, difference: float) =
-    
+
         let mutable bestAsk: Maybe<float> = No
         let mutable bestBid: Maybe<float> = No
-        //let tag = $"Gemini[{symbol}]"
 
         let processEvent (event: JsonElement): unit =
             if (event.GetProperty("type").GetString() = "change" &&
@@ -52,49 +51,39 @@ module Gemini =
             | Yes(ask), Yes(bid) -> getPrice ask bid <| getBar json insert
             | _ -> ()
 
-    type private Adapter(z: {|
+
+    let Source(z: {|
             Tickers: Ticker list
             Size: int
             Buffer: Buffer
             AskBidDifference: float
             Timeout: int |}) =
-        
+
         let symbol (ticker: Ticker): string =
             match ticker with
             | Crypto(symbol) -> symbol
             | _ -> Log.Error("Gemini", $"Gemini only supports Crypto, not {ticker}")
-            
+
         let symbols = Utils.CreateDictionary(z.Tickers, symbol)
         let url ticker = $"wss://api.gemini.com/v1/marketdata/{symbols[ticker]}USD"
 
+        let reconnect(ticker: Ticker, msg: string) =
+            Log.Warning(tag, $"Reconnecting for {symbols[ticker]} -> {msg}")
 
-        interface Socket.Adapter.Multi with
+        Socket.Source.Multi({new interface Socket.Adapter.Multi with
             member this.Tickers = z.Tickers
             member this.Timeout = z.Timeout
             member this.Start _ = ()
             member this.Buffer = z.Buffer
             member this.Size = z.Size
             member this.Url(ticker) = url(ticker)
+            member Tag(ticker) = $"Gemini[{symbols[ticker]}]"
+            member Reconnect(ticker, msg) = reconnect(ticker, msg)
+            member this.Send(_, _) = ()
             member this.Receive(ticker, msg, insert) =
-                parser[ticker].Parse(msg, insert)
+                parser[ticker].Parse(msg, insert) })
+(*
 
-            abstract Reconnect: Ticker * string -> unit
-            abstract Send: Ticker * string -> unit
-            abstract Tag: Ticker -> string
-
-
-        let reconnect(msg: string) =
-            Log.Warning(tag, $"Reconnecting for {symbol} -> {msg}")
-
-        let socket: System.IDisposable = new Socket {|
-            Url =
-            Tag = tag
-            Timeout = timeout
-            Receive = parse
-            Send = fun _ -> ()
-            Reconnection = reconnect |}
-
-        interface System.IDisposable with member this.Dispose() = socket.Dispose()
 
     type private Exchange(z: {|
             Tickers: Ticker list
@@ -120,4 +109,11 @@ module Gemini =
 
         interface System.IDisposable with member this.Dispose() = this.Dispose()
 
-    let Source z = Socket.Source.Multi(new Adapter(z))
+        let socket: System.IDisposable = new Socket {|
+            Url =
+            Tag = tag
+            Timeout = timeout
+            Receive = parse
+            Send = fun _ -> ()
+            Reconnection = reconnect |}
+*)
