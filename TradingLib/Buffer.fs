@@ -7,7 +7,7 @@ module Buffer =
 
     let private floor (t:time) (interval: time) = t - (t % interval)
 
-    let private merge (b1: Bar, b2: Bar): Bar = ...
+    let private merge (b1: Bar, b2: Bar): Bar = ... // TODO
 
     type private LinearBuffer(interval: time, gap: int) =
 

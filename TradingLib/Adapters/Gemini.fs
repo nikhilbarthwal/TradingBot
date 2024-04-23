@@ -5,7 +5,7 @@ open System.Text.Json
 
 module Gemini =
 
-    type private Parser(tag: string, difference: float) =
+    type private Parser(tag: string, difference: float, symbol: string) =
 
         let mutable bestAsk: Maybe<float> = No
         let mutable bestBid: Maybe<float> = No
@@ -42,7 +42,7 @@ module Gemini =
             insert <| Bar {| Open = price; High = price; Low = price; Close = price
                              Time = time; Volume = -1 |}
 
-        let parse (message: string, insert: Bar -> unit): unit =
+        member this.Parse(message: string, insert: Bar -> unit): unit =
             let json: JsonElement = JsonDocument.Parse(message).RootElement
             try (processMessage json) with e ->
                 Log.Error(tag, $"Unable to parse {message} -> {e.Message}")
@@ -66,54 +66,24 @@ module Gemini =
 
         let symbols = Utils.CreateDictionary(z.Tickers, symbol)
         let url ticker = $"wss://api.gemini.com/v1/marketdata/{symbols[ticker]}USD"
+        let tags = Utils.CreateDictionary(z.Tickers,
+                                          fun ticker -> $"Gemini[{symbols[ticker]}]")
+        let parser ticker = Parser(tags[ticker], z.AskBidDifference, symbols[ticker])
+        let parsers = Utils.CreateDictionary(z.Tickers, parser)
 
         let reconnect(ticker: Ticker, msg: string) =
-            Log.Warning(tag, $"Reconnecting for {symbols[ticker]} -> {msg}")
+            Log.Warning(tags[ticker], $"Reconnecting for {symbols[ticker]} -> {msg}")
 
-        Socket.Source.Multi({new interface Socket.Adapter.Multi with
+        Socket.Source.Multi({new Socket.Adapter.Multi with
             member this.Tickers = z.Tickers
             member this.Timeout = z.Timeout
             member this.Start _ = ()
             member this.Buffer = z.Buffer
             member this.Size = z.Size
             member this.Url(ticker) = url(ticker)
-            member Tag(ticker) = $"Gemini[{symbols[ticker]}]"
-            member Reconnect(ticker, msg) = reconnect(ticker, msg)
+            member this.Tag(ticker) = tags[ticker]
+            member this.Reconnect(ticker, msg) = reconnect(ticker, msg)
             member this.Send(_, _) = ()
+            member this.Dispose() = ()
             member this.Receive(ticker, msg, insert) =
-                parser[ticker].Parse(msg, insert) })
-(*
-
-
-    type private Exchange(z: {|
-            Tickers: Ticker list
-            Size: int
-            Preprocessor: Buffer
-            AskBidDifference: float
-            Timeout: int |}) =
-        do
-            for ticker in z.Tickers do
-                match ticker with
-                | Crypto _ -> ()
-                | _ -> Log.Error("Gemini",
-                                $"Gemini only supports Crypto, not {ticker}")
-
-        let exchange = Data.Exchange(z.Tickers, z.Size, z.Preprocessor)
-        let connection ticker: System.IDisposable = new Connection(
-            z.AskBidDifference, exchange[ticker], ticker.Symbol,  z.Timeout)
-        let connections = Utils.CreateDictionary(z.Tickers, connection)
-
-        member this.Exchange = exchange
-        member this.Dispose() =
-            for ticker in z.Tickers do connections[ticker].Dispose()
-
-        interface System.IDisposable with member this.Dispose() = this.Dispose()
-
-        let socket: System.IDisposable = new Socket {|
-            Url =
-            Tag = tag
-            Timeout = timeout
-            Receive = parse
-            Send = fun _ -> ()
-            Reconnection = reconnect |}
-*)
+                parsers[ticker].Parse(msg, insert) })
