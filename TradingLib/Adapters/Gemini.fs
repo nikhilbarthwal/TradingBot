@@ -4,13 +4,12 @@ open System.Text.Json
 
 
 module Gemini =
-
-    type private Connection(
-        difference: float, store: Data.Buffer, symbol: string, timeout: int) =
-
+    
+    type private Parser(tag: string, difference: float) =
+    
         let mutable bestAsk: Maybe<float> = No
         let mutable bestBid: Maybe<float> = No
-        let tag = $"Gemini[{symbol}]"
+        //let tag = $"Gemini[{symbol}]"
 
         let processEvent (event: JsonElement): unit =
             if (event.GetProperty("type").GetString() = "change" &&
@@ -38,26 +37,57 @@ module Gemini =
                 if ((100.0 * (ask - bid)) / bid) < difference then
                     insert <| (ask + bid) / 2.0
 
-        let insertBar (json: JsonElement) (price : float): unit =
+        let getBar (json: JsonElement) (insert: Bar -> unit) (price : float): unit =
             let time: time = json.GetProperty("timestampms").GetInt64()
             bestAsk <- No ; bestBid <- No
-            store += Bar {| Open = price; High = price; Low = price; Close = price
-                            Time = time; Volume = -1 |}
+            insert <| Bar {| Open = price; High = price; Low = price; Close = price
+                             Time = time; Volume = -1 |}
 
-        let parse (message: string): unit =
+        let parse (message: string, insert: Bar -> unit): unit =
             let json: JsonElement = JsonDocument.Parse(message).RootElement
             try (processMessage json) with e ->
                 Log.Error(tag, $"Unable to parse {message} -> {e.Message}")
 
             match bestAsk, bestBid with
-            | Yes(ask), Yes(bid) -> getPrice ask bid <| insertBar json
+            | Yes(ask), Yes(bid) -> getPrice ask bid <| getBar json insert
             | _ -> ()
+
+    type private Adapter(z: {|
+            Tickers: Ticker list
+            Size: int
+            Buffer: Buffer
+            AskBidDifference: float
+            Timeout: int |}) =
+        
+        let symbol (ticker: Ticker): string =
+            match ticker with
+            | Crypto(symbol) -> symbol
+            | _ -> Log.Error("Gemini", $"Gemini only supports Crypto, not {ticker}")
+            
+        let symbols = Utils.CreateDictionary(z.Tickers, symbol)
+        let url ticker = $"wss://api.gemini.com/v1/marketdata/{symbols[ticker]}USD"
+
+
+        interface Socket.Adapter.Multi with
+            member this.Tickers = z.Tickers
+            member this.Timeout = z.Timeout
+            member this.Start _ = ()
+            member this.Buffer = z.Buffer
+            member this.Size = z.Size
+            member this.Url(ticker) = url(ticker)
+            member this.Receive(ticker, msg, insert) =
+                parser[ticker].Parse(msg, insert)
+
+            abstract Reconnect: Ticker * string -> unit
+            abstract Send: Ticker * string -> unit
+            abstract Tag: Ticker -> string
+
 
         let reconnect(msg: string) =
             Log.Warning(tag, $"Reconnecting for {symbol} -> {msg}")
 
         let socket: System.IDisposable = new Socket {|
-            Url = $"wss://api.gemini.com/v1/marketdata/{symbol}USD"
+            Url =
             Tag = tag
             Timeout = timeout
             Receive = parse
@@ -90,4 +120,4 @@ module Gemini =
 
         interface System.IDisposable with member this.Dispose() = this.Dispose()
 
-    let Source z = let e = new Exchange(z) in new Data.Source(e.Exchange, e.Dispose)
+    let Source z = Socket.Source.Multi(new Adapter(z))

@@ -32,7 +32,7 @@ module Data =
         let reset() = lock object (fun _ -> data.Reset())
         interface Store with
             member this.Insert(bar: Bar) =
-                if not(buffer.Insert insert bar) then reset()
+                if not (buffer.Insert(bar, insert)) then reset()
             member this.Reset() = reset()
         interface Data with
             member this.Get(l) = lock object (fun _ -> data.Get(l))

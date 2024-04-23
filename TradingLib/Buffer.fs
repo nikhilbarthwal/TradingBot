@@ -1,42 +1,37 @@
 namespace TradingLib
 
 
-type Buffer = abstract member Insert: (Bar -> unit) -> Bar -> bool
+type Buffer = abstract member Insert: Bar * (Bar -> unit) -> bool
+
+module Buffer =
+
+    let private floor (t:time) (interval: time) = t - (t % interval)
+
+    let private merge (b1: Bar, b2: Bar): Bar = ...
+
+    type private LinearBuffer(interval: time, gap: int) =
+
+        let mutable previous: Maybe<Bar> = No
+
+        let update (prev: Bar) (curr: Bar) (output: Bar -> unit): bool =
+            let prevFloor = floor prev.Epoch interval
+            let diff = int <| ((floor curr.Epoch interval) - prevFloor) / interval
+
+            if diff >= gap then false else
+                if diff = 0 then
+                    previous <- Yes(merge(prev, curr)) ; true
+                else
+                    // TODO: Add all the intermediete ones
+                    previous <- Yes(curr) ; true
+
+        interface Buffer with member this.Insert(input, output): bool =
+                                     match previous with
+                                     | Yes(prev) -> update prev input output
+                                     | No -> previous <- Yes(input) ; true
+
+    let Linear z = LinearBuffer z :> Buffer
 
 (*
-module Preprocessor =
-
-
-    type private LinearScheme(ticker: Ticker) =
-
-        let prices (current:tick) (previous: tick): tick list =
-            let dTime  = current.Time  - previous.Time
-            let dPrice = current.Price - previous.Price
-            assert (dTime > 0)
-
-            let check (timestamp: time) = current.Time >= timestamp
-            let next  (timestamp: time) = BufferInterval + timestamp
-
-            let linearize (timestamp: time) =
-                let dy, dx = float (timestamp - previous.Time) , float dTime
-                let price = previous.Price + (dPrice * dy) / dx
-                { Price = Normalize price ; Time = timestamp }
-
-            Collect(floor previous.Time, check, next) linearize
-
-        interface Scheme with
-
-            member this.Initial (current: tick): Response =
-                let modulus = current.Time % BufferInterval
-                Prices(if modulus = 0 then [current] else [])
-
-            member this.Update (current: tick) (previous:tick): Response =
-                match (current.Time - previous.Time) with
-                | 0L -> Prices([])
-                | d when d < ResetThresholdTime -> Prices(prices current previous)
-                | _ -> Error("Stream Threshold exceeded for Linear scheme")
-
-    let private floor (t:time) = t + BufferInterval - (t % BufferInterval)
 
     type private Buckets(size:int) =
 

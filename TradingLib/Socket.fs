@@ -9,7 +9,7 @@ module Socket =
         Url: string
         Timeout: int
         Receive: string -> unit
-        Reconnection: string -> unit
+        Reconnect: string -> unit
         Send: string -> unit
         Tag: string |}
 
@@ -21,7 +21,7 @@ module Socket =
                 cl.ReconnectTimeout <- System.TimeSpan.FromSeconds(p.Timeout)
                 let rc = System.ObservableExtensions.Subscribe(
                     cl.ReconnectionHappened,
-                    fun info -> p.Reconnection(info.Type.ToString()))
+                    fun info -> p.Reconnect(info.Type.ToString()))
                 let rv = System.ObservableExtensions.Subscribe(
                     cl.MessageReceived, fun msg -> p.Receive(msg.Text))
                 (cl, rc, rv, cl.Start())
@@ -40,53 +40,70 @@ module Socket =
                     Log.Warning(p.Tag,
                                 $"Unable to close socket connection for {p.Url}")
 
-    (* module Adapter =
+    module Adapter =
 
-        Common:
-- Tickers list
-- Timeout
-- Start(ticker -> unit)
-- Dispose()
-- Buffer
-
-singularAdapter
-- Url: string
-- Receiver(string, ticker -> bar -> unit)
-- Reconnection(string -> unit)
-- Send(msg -> ())
-- Initialze( unit -> unit)
-
-
-multiAdapter
-- Url: string -> string
-- Receiver(ticker, string, bar -> unit)
-- Reconnection(ticker -> string -> unit)
-- Send(ticker -> msg -> ())
-
+        type Common =
+            inherit System.IDisposable
+            abstract Tickers: Ticker list
+            abstract Timeout: int
+            abstract Start: Ticker -> unit
+            abstract Buffer: Buffer
+            abstract Size: int
+        
         type Single =
+            inherit Common
+            abstract Url: string
+            abstract Receive: string * (Ticker -> Bar -> unit) -> unit
+            abstract Reconnect: string -> unit
+            abstract Send: string -> unit
+            abstract Initialize: unit -> unit
+            abstract Tag: string
+
         type Multi =
+            inherit Common
+            abstract Url: Ticker -> string
+            abstract Receive: Ticker * string * (Bar -> unit) -> unit
+            abstract Reconnect: Ticker * string -> unit
+            abstract Send: Ticker * string -> unit
+            abstract Tag: Ticker -> string
 
+    module Source =
 
-    module Connection =
+        type private SingleSource(z: Adapter.Single) =
+            let exchange = Data.Exchange(z.Tickers, z.Size, z.Buffer)
+            let insert ticker = exchange[ticker].Insert
+            let connection: System.IDisposable = new Socket {|
+                Url = z.Url
+                Timeout = z.Timeout
+                Receive = fun msg -> z.Receive(msg, insert)
+                Reconnect = z.Reconnect
+                Send = z.Send
+                Tag = z.Tag |}
 
-        let getExchange(Adapter.Base): Exchanage
+            interface Data.Source with
+                member this.Data = exchange.Data
+                member this.Tickers = z.Tickers
+                member this.Dispose() = z.Dispose() ; connection.Dispose()
 
-        type Singe(z: Adapter.Singular) =
-            let exchange = getExchange(z)
-            let connections = ...
+        type private MultiSource(z: Adapter.Multi) =
 
-            interface Source
-        type Multi(z: Adapter.Singular) =
+            let exchange = Data.Exchange(z.Tickers, z.Size, z.Buffer)
+            let adapter ticker: parameters ={|
+                Url = z.Url ticker
+                Timeout = z.Timeout
+                Receive = fun msg -> z.Receive(ticker, msg, exchange[ticker].Insert)
+                Reconnect = fun msg -> z.Reconnect(ticker, msg)
+                Send = fun msg -> z.Send(ticker, msg)
+                Tag = z.Tag ticker |}
+            let socket ticker = new Socket(adapter ticker) :> System.IDisposable
+            let connections = Utils.CreateDictionary(z.Tickers, socket)
 
-            let exchange = getExchange(z)
-            let adapter ticker: socketParams =
-            let connections = Utils.CreateDictionary(z.Tickets, adapter >> Socket)
+            interface Data.Source with
+                member this.Data = exchange.Data
+                member this.Tickers = z.Tickers
+                member this.Dispose() =
+                    z.Dispose()
+                    for connection in connections.Values do connection.Dispose()
 
-            interface Source
-
-        let Singular(z: Adapter.Singular): Source =
-        let Multi(z: Adapter.Singular): Source =
-
-
-
-*)
+        let Single(z: Adapter.Single): Data.Source = new SingleSource(z)
+        let Multi(z: Adapter.Multi): Data.Source = new MultiSource(z)
