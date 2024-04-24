@@ -1,4 +1,4 @@
-namespace Trading.Maths
+namespace TradingLib
 
 open System
 open System.Numerics
