@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <Compile Include="Utils.fs"/>
+        <Compile Include="Common.fs" />
         <Compile Include="Base.fs"/>
         <Compile Include="Buffer.fs" />
         <Compile Include="Data.fs" />
