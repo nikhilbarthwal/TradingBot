@@ -5,29 +5,12 @@ type Data = abstract Get: Bar[] -> bool
 
 module Data =
 
-    type private CircularArray(size: int) =
-        let mutable pos: int = 0
-        let mutable count: int = 0
-        let data: Bar[] = [| for _ in 1 .. size -> Bar() |]
-
-        member this.Insert(bar: Bar) = data[pos] <- bar ; count <- count + 1
-                                       pos <- pos + 1 ; if pos = size then pos <- 0
-
-        member this.Reset() = count <- 0 ; pos <- 0
-
-        member this.Get(buffer: Bar[]): bool =
-            if count < size then false else
-                for index in [1 .. size] do
-                    let n = (size + pos - index) % size
-                    buffer[index - 1] <- data[n]
-                true
-
     type Store = abstract member Insert: Bar -> unit
                  abstract member Reset: unit -> unit
 
     type private Vault(size: int, buffer: Buffer) =
         let object = System.Object()
-        let data = CircularArray(size)
+        let data = Vector.Circular(size, fun _ -> Bar())
         let insert(bar) = lock object (fun _ -> data.Insert(bar))
         let reset() = lock object (fun _ -> data.Reset())
         interface Store with

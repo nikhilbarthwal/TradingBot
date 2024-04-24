@@ -31,6 +31,23 @@ module Vector =
            (l: int) (f1: int -> 'T, f2: int -> 'T): 'T =
         let f (sum: 'T) k = sum + (f1 k) * (f2 k)
         let init = (f1 0) * (f2 0) in (List.fold f init [1 .. l - 1])
+        
+    type Circular<'T>(size: int, f: int -> 'T) =
+        let mutable pos: int = 0
+        let mutable count: int = 0
+        let data = [| for i in 1 .. size -> f(i - 1) |]
+
+        member this.Insert(x: 'T) = data[pos] <- x ; count <- count + 1
+                                    pos <- pos + 1 ; if pos = size then pos <- 0
+
+        member this.Reset() = count <- 0 ; pos <- 0
+
+        member this.Get(buffer: 'T[]): bool =
+            if count < size then false else
+                for index in [1 .. size] do
+                    let n = (size + pos - index) % size
+                    buffer[index - 1] <- data[n]
+                true
 
 
 type Matrix<'V, 'T when 'T :> Vector<'V>> private(rows: int, f: int -> 'T) =
