@@ -1,35 +1,59 @@
 namespace TradingLib
 
-
 type Buffer = abstract member Insert: Bar * (Bar -> unit) -> bool
 
 module Buffer =
 
     let private floor (t:time) (interval: time) = t - (t % interval)
 
-    let private merge (b1: Bar, b2: Bar): Bar = ... // TODO
+    let private merge (b1: Bar, b2: Bar): Bar =
+        Bar <| {| Open   = (b1.Open + b2.Open) / 2.0
+                  Close  = (b1.Close + b2.Close) / 2.0
+                  High   = max b1.High b2.High
+                  Low    = min b1.Low b2.Low
+                  Time   = (b1.Epoch + b2.Epoch) / 2L
+                  Volume = (b1.Volume + b2.Volume) / 2L |}
 
     type private LinearBuffer(interval: time, gap: int) =
 
         let mutable previous: Maybe<Bar> = No
 
+        let extrapolate (start: time, stop: time) (p: Bar, c: Bar)
+                        (output: Bar -> unit) (t: time): unit =
+
+            let dt = stop - start
+
+            let extrapolateF (prev: float, curr: float): float =
+                let dx = (curr - prev)
+                prev + (dx * (float <| t - start)) / (float <| dt)
+
+            let extrapolateL (prev: int64, curr: int64): int64 =
+                let dx = (curr - prev)
+                prev + (dx * (t - start)) / dt
+
+            output <| Bar({| Open   = extrapolateF(p.Open, c.Open)
+                             Close  = extrapolateF(p.Close, c.Close)
+                             High   = extrapolateF(p.High, c.High)
+                             Low    = extrapolateF(p.Low, c.Low)
+                             Time   = extrapolateL(p.Epoch, c.Epoch)
+                             Volume = extrapolateL(p.Volume, c.Volume) |})
+
         let update (prev: Bar) (curr: Bar) (output: Bar -> unit): bool =
-            let prevFloor = floor prev.Epoch interval
-            let diff = int <| ((floor curr.Epoch interval) - prevFloor) / interval
+            let start: time = floor prev.Epoch interval
+            let diff: int = int <| ((floor curr.Epoch interval) - start) / interval
 
             if diff >= gap then false else
                 if diff = 0 then
                     previous <- Yes(merge(prev, curr)) ; true
                 else
-                    // TODO: Add all the intermediete ones
+                    let insert = extrapolate (start, curr.Epoch) (prev, curr) output
+                    for i in [1 .. diff] do (insert <| start + (int64 i) * interval)
                     previous <- Yes(curr) ; true
 
         interface Buffer with member this.Insert(input, output): bool =
                                      match previous with
                                      | Yes(prev) -> update prev input output
                                      | No -> previous <- Yes(input) ; true
-
-    let Linear z = LinearBuffer z :> Buffer
 
 (*
 
@@ -54,10 +78,9 @@ module Buffer =
             total[indexTo] <- total[indexFrom]
             count[indexTo] <- count[indexFrom]
 
+    type private BucketBuffer(interval: time, count: int) =
 
-    type private BucketScheme(ticker: ticker) =
-
-        let buckets = Buckets(BucketSchemeBufferSize)
+        let buckets = Buckets(count)
 
         let getInterval (diff:time): int option =
             [0 .. BucketSchemeBufferSize - 1]
@@ -94,3 +117,4 @@ module Buffer =
     let Linear (params: {| interval: float |}) (store: ticker -> unit): Preprocess =
     let Bucket (params: {| size: int |}) (store: ticker -> unit): Preprocess =
 *)
+    let Linear z: Buffer = LinearBuffer z :> Buffer
