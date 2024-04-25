@@ -17,7 +17,7 @@ module Utils =
         let estZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")
         TimeZoneInfo.ConvertTimeFromUtc(dateTimeOffset.DateTime, estZone)
 
-    let Normalize(x: float) = Math.Round(x, precision) / 2.0
+    let Normalize(x: float) = Math.Round(x, precision)
     let CurrentTime() = DateTime.Now.ToString("F")
 
     let CreateDictionary<'V, 'K when 'K: equality>(l: 'K list, f: 'K -> 'V) =

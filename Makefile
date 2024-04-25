@@ -1,6 +1,6 @@
 app=CryptoBot
 version=net8.0
-os=$(shell uname -s)
+os=$(shell uname -n)
 sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)
 
 ifeq ($(os), Linux)
@@ -15,13 +15,7 @@ ifeq ($(os), Darwin)
 	out=.bin
 endif
 
-ifeq ($(os), CYGWIN)
-	runtime=win-x64
-	inp=.exe
-	out=.exe
-endif
-
-ifeq ($(os), MINGW)
+ifeq ($(os), Cygwin)
 	runtime=win-x64
 	inp=.exe
 	out=.exe

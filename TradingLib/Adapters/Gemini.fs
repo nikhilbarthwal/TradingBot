@@ -5,7 +5,7 @@ open System.Text.Json
 
 module Gemini =
 
-    type private Parser(tag: string, difference: float, symbol: string) =
+    type private Parser(tag: string, difference: float) =
 
         let mutable bestAsk: Maybe<float> = No
         let mutable bestBid: Maybe<float> = No
@@ -13,6 +13,7 @@ module Gemini =
         let processEvent (event: JsonElement): unit =
             if (event.GetProperty("type").GetString() = "change" &&
                 event.GetProperty("reason").GetString() = "place") then
+
                 let price: float = float <| event.GetProperty("price").GetString()
                 let side: string = event.GetProperty("side").GetString()
 
@@ -31,25 +32,32 @@ module Gemini =
                 for k in [1 .. json.GetProperty("events").GetArrayLength()] do
                     processEvent <| json.GetProperty("events").Item(k - 1)
 
-        let getPrice (ask: float) (bid: float) (insert: float -> unit) =
-            if bid >= ask then insert bid else
+        let insert (ask: float) (bid: float) (ingest: Bar -> unit)
+                   (bar: float -> Bar): unit =
+
+            if bid >= ask then (ingest <| bar bid) else
                 if ((100.0 * (ask - bid)) / bid) < difference then
-                    insert <| (ask + bid) / 2.0
+                    ingest <| bar ((ask + bid) / 2.0)
 
-        let getBar (json: JsonElement) (insert: Bar -> unit) (price : float): unit =
-            let time: time = json.GetProperty("timestampms").GetInt64()
+        let getBar (json: JsonElement) (price : float): Bar =
             bestAsk <- No ; bestBid <- No
-            insert <| Bar {| Open = price; High = price; Low = price; Close = price
-                             Time = time; Volume = -1 |}
+            Bar {| Open = price
+                   High = price
+                   Low = price
+                   Close = price
+                   Time = json.GetProperty("timestamp").GetInt64()
+                   Volume = -1 |}
 
-        member this.Parse(message: string, insert: Bar -> unit): unit =
+        let parse(message: string) (ingest: Bar -> unit): unit =
             let json: JsonElement = JsonDocument.Parse(message).RootElement
-            try (processMessage json) with e ->
-                Log.Error(tag, $"Unable to parse {message} -> {e.Message}")
-
+            processMessage json
             match bestAsk, bestBid with
-            | Yes(ask), Yes(bid) -> getPrice ask bid <| getBar json insert
+            | Yes(ask), Yes(bid) -> insert ask bid ingest <| getBar json
             | _ -> ()
+
+        member this.Parse(message: string, ingest: Bar -> unit): unit =
+            try (parse message ingest) with e ->
+                Log.Error(tag, $"Unable to parse {message} -> {e.Message}")
 
 
     let Source(z: {|
@@ -68,7 +76,7 @@ module Gemini =
         let url ticker = $"wss://api.gemini.com/v1/marketdata/{symbols[ticker]}USD"
         let tags = Utils.CreateDictionary(z.Tickers,
                                           fun ticker -> $"Gemini[{symbols[ticker]}]")
-        let parser ticker = Parser(tags[ticker], z.AskBidDifference, symbols[ticker])
+        let parser ticker = Parser(tags[ticker], z.AskBidDifference)
         let parsers = Utils.CreateDictionary(z.Tickers, parser)
 
         let reconnect(ticker: Ticker, msg: string) =

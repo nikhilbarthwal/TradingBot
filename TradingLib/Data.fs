@@ -21,8 +21,7 @@ module Data =
             member this.Get(l) =
 #if DEBUG
                let r = lock object (fun _ -> data.Get(l))
-               for i in l do (assert i.Valid)
-               r
+               (for i in l do (assert i.Valid)) ; r
 #else
                lock object (fun _ -> data.Get(l))
 #endif
