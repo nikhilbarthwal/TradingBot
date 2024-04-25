@@ -17,7 +17,7 @@ module Buffer =
             count <- count + 1
             let avgFloat (p, c) = (pF * p + c) / (2.0 * tF)
             let avgLong (p, c) = (pL * p + c) / (2L * tL)
-            Bar <| {| Open   = avgFloat(data.Open, b.Open)
+            Bar <| {| Open   = avgFloat(data.Open, b.Open) 
                       Close  = avgFloat(data.Close, b.Close)
                       High   = max data.High b.High
                       Low    = min data.Low b.Low
@@ -44,7 +44,7 @@ module Buffer =
         let buckets = Buckets(size)
         let mutable previous: time = 0L
         let floor (t:time) = t - (t % interval)
-
+        
         let extrapolate (diff: int) (output: Bar -> unit) (i: int): unit =
             let t = previous + interval * (int64 i)
             let p, c = buckets[0].Data, buckets[diff].Data
@@ -55,7 +55,7 @@ module Buffer =
 
             let extrapolateL (prev: int64, curr: int64): int64 =
                 prev + ((curr - prev) * (t - p.Epoch)) / dt
-
+                
             output <| Bar({| Open   = extrapolateF(p.Open, c.Open)
                              Close  = extrapolateF(p.Close, c.Close)
                              High   = extrapolateF(p.High, c.High)
