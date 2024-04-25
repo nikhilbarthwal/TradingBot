@@ -31,7 +31,7 @@ module Vector =
            (l: int) (f1: int -> 'T, f2: int -> 'T): 'T =
         let f (sum: 'T) k = sum + (f1 k) * (f2 k)
         let init = (f1 0) * (f2 0) in (List.fold f init [1 .. l - 1])
-        
+
     type Circular<'T>(size: int, f: int -> 'T) =
         let mutable pos: int = 0
         let mutable count: int = 0

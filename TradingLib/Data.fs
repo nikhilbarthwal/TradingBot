@@ -11,14 +11,21 @@ module Data =
     type private Vault(size: int, buffer: Buffer) =
         let object = System.Object()
         let data = Vector.Circular(size, fun _ -> Bar())
-        let insert(bar) = lock object (fun _ -> data.Insert(bar))
+        let insert bar = lock object (fun _ -> data.Insert(bar))
         let reset() = lock object (fun _ -> data.Reset())
+        let ingest bar = buffer.Ingest(bar, insert)
         interface Store with
-            member this.Insert(bar: Bar) =
-                if not (buffer.Insert(bar, insert)) then reset()
+            member this.Insert(bar: Bar) = if not (ingest bar) then reset()
             member this.Reset() = reset()
         interface Data with
-            member this.Get(l) = lock object (fun _ -> data.Get(l))
+            member this.Get(l) =
+#if DEBUG
+               let r = lock object (fun _ -> data.Get(l))
+               for i in l do (assert i.Valid)
+               r
+#else
+               lock object (fun _ -> data.Get(l))
+#endif
 
     type Exchange(tickers: Ticker list, size: int, buffer: Buffer) =
         let reader, writer =

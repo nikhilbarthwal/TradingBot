@@ -54,6 +54,7 @@ module Order =
 type Bar (param: struct {| Open: float; High: float; Low: float
                            Close: float; Time: time; Volume: int64 |}) =
 
+    member this.Valid = true
     member this.Open = Utils.Normalize(param.Open)
     member this.High = Utils.Normalize(param.High)
     member this.Low = Utils.Normalize(param.Low)

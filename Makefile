@@ -39,7 +39,7 @@ release: ${sources}
 	cp ./${app}/bin/Release/${version}/${runtime}/publish/${app}${inp} ${app}${out}
 
 print.ps: ${sources}
-	a2ps -o $@ --font-size=10 -R --columns=1 ${source}
+	a2ps -o $@ --font-size=10 -R --columns=1 $^
 
 print.pdf: print.ps
 	ps2pdf -o $@ $^
