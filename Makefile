@@ -1,8 +1,7 @@
 app=CryptoBot
 version=net8.0
 os=$(shell uname -s)
-sources=$(wildcard */*.fs */*.fsproj *.sln)
-files=$(wildcard */*.fs *.bat Makefile */*.fsproj *.sln .gitignore)
+sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)
 
 ifeq ($(os), Linux)
 	runtime=linux-x64
@@ -40,11 +39,10 @@ release: ${sources}
 	cp ./${app}/bin/Release/${version}/${runtime}/publish/${app}${inp} ${app}${out}
 
 print.ps: ${sources}
-	a2ps -o $@ --font-size=10 -R --columns=1 ${source}
+	a2ps -o $@ --font-size=10 -R --columns=1 $^
 
 print.pdf: print.ps
 	ps2pdf -o $@ $^
 
 clean:
 	rm -rf */bin */obj *.bin *.exe *.log print.pdf print.ps
-

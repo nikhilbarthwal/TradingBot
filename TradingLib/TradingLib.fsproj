@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="Utils.fs"/>
+		<Compile Include="Fraction.fs" />
+		<Compile Include="Common.fs" />
+		<Compile Include="Base.fs"/>
+		<Compile Include="Buffer.fs" />
+		<Compile Include="Data.fs" />
+		<Compile Include="Socket.fs"/>
+		<Compile Include="Adapters/Gemini.fs"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Websocket.Client" Version="5.1.1" />
+	</ItemGroup>
+
+</Project>
