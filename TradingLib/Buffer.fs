@@ -4,8 +4,6 @@ type Buffer = abstract member Insert: Bar * (Bar -> unit) -> bool
 
 module Buffer =
 
-    let private floor (t:time) (interval: time) = t - (t % interval)
-
     let private merge (b1: Bar, b2: Bar): Bar =
         Bar <| {| Open   = (b1.Open + b2.Open) / 2.0
                   Close  = (b1.Close + b2.Close) / 2.0
@@ -17,6 +15,7 @@ module Buffer =
     type private LinearBuffer(interval: time, gap: int) =
 
         let mutable previous: Maybe<Bar> = No
+        let floor (t:time): time = t - (t % interval)
 
         let extrapolate (start: time, stop: time) (p: Bar, c: Bar)
                         (output: Bar -> unit) (t: time): unit =
@@ -39,7 +38,7 @@ module Buffer =
                              Volume = extrapolateL(p.Volume, c.Volume) |})
 
         let update (prev: Bar) (curr: Bar) (output: Bar -> unit): bool =
-            let start: time = floor prev.Epoch interval
+            let start: time = floor prev.Epoch
             let diff: int = int <| ((floor curr.Epoch interval) - start) / interval
 
             if diff >= gap then false else
@@ -54,6 +53,33 @@ module Buffer =
                                      match previous with
                                      | Yes(prev) -> update prev input output
                                      | No -> previous <- Yes(input) ; true
+
+    let Linear z: Buffer = LinearBuffer z :> Buffer
+
+
+    type BucketBuffer(interval: time, size: int) =
+
+        let bucket = Array.create(size, fun _ -> Bucket())
+        let floor (t:time): time = (t - (t % interval)) / interval
+        let mutable start: time = 0
+
+        let reset(): bool =
+            start <- 0L
+            for i in [1..size] do bucket[i - 1].Clear()
+
+        member this.Insert(b: Bar): bool =
+            let current = floor b.Epoch
+            if start = 0:
+                insert  into [0]
+                start = floor
+                return True
+            else
+                let index: int = int <| floor - start
+                if index >= max then reset() else
+                    Push: 0 to index-1
+                    for i in [index .. size - 1] do shift(i,i - index)
+                    star = floor
+                    return True
 
 (*
 
@@ -117,4 +143,66 @@ module Buffer =
     let Linear (params: {| interval: float |}) (store: ticker -> unit): Preprocess =
     let Bucket (params: {| size: int |}) (store: ticker -> unit): Preprocess =
 *)
-    let Linear z: Buffer = LinearBuffer z :> Buffer
+
+
+
+(*
+bucket.insert(bar)
+shift(i,j): assert i > j; Copy data from i to j
+____________
+floot = Get current time
+
+if start = 0:
+	insert  into [0]
+	start = floor
+	return True
+else
+	index = floor - start
+	if index > max then
+			clear all bucket
+			insert  into [0]
+			start = floor
+			return False
+	else:
+			Push: 0 to index-1
+			for i in [index .. size - 1] do shift(i,i - index)
+			star = floor
+			return True
+type Bucket
+
+
+type Buckets
+
+type BucketBuffer(size, interval)
+
+	let buckets = Buckets(5)
+	let floor = ...
+
+	member this.Insert(b: Bar): bool =
+		let current = floor b.Epoch
+		
+
+
+	bucket.insert(bar)
+shift(i,j): assert i > j; Copy data from i to j
+____________
+floot = Get current time
+
+if start = 0:
+	insert  into [0]
+	start = floor
+	return True
+else
+	index = floor - start
+	if index > max then
+			clear all bucket
+			insert  into [0]
+			start = floor
+			return False
+	else:
+			Push: 0 to index-1
+			for i in [index .. size - 1] do shift(i,i - index)
+			star = floor
+			return True
+
+*)
