@@ -19,12 +19,8 @@ module Data =
             member this.Reset() = reset()
         interface Data with
             member this.Get(l) =
-#if DEBUG
-               let r = lock object (fun _ -> data.Get(l))
-               (for i in l do (assert i.Valid)) ; r
-#else
+               //TODO: Add this check (for i in l do (assert not(i.Empty))) ; r
                lock object (fun _ -> data.Get(l))
-#endif
 
     type Exchange(tickers: Ticker list, size: int, buffer: Buffer) =
         let reader, writer =

@@ -8,6 +8,7 @@ module Buffer =
     type private Bucket() =
         let mutable data = Bar()
         let mutable count = 0
+        let mutable valid = false
         let merge (b: Bar) =
             let pF = float count
             let tF = float <| count + 1
@@ -23,16 +24,17 @@ module Buffer =
                       Time   = avgLong(data.Epoch, b.Epoch)
                       Volume = avgLong(data.Volume, b.Volume) |}
 
-        member this.Data = assert data.Valid ; data
+        member this.Data = assert valid ; data
         // member this.Add(x: Bar) = if data.Valid then data <- merge x else data <- x
         member this.Add(x: Bar) =
-            if data.Valid then
+            if valid then
                 let t = data
                 data <- merge x
                 Log.Debug("Merge", $"{x}: {t} -> {data}")
             else
                 Log.Debug("Merge", $"{x}: Initial")
                 data <- x
+                valid <- true
 
         member this.Reset() = data <-Bar()
         member this.Count = count
