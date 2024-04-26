@@ -76,6 +76,7 @@ module Buffer =
 
         interface Buffer with
             member this.Ingest(input: Bar, output: Bar -> unit): bool =
+                Log.Debug("Input", input.ToString())
                 let current = floor input.Epoch
                 if buckets[0].Count = 0 then
                     buckets[0].Add input
