@@ -9,8 +9,8 @@ let tickers: Ticker list = [ Crypto("ETH") ; Crypto("BTC") ]
 let source: Source = Gemini.Source {|
     Tickers = tickers
     Size = size
-    Buffer = Buffer.Linear(1L, 5)
-    AskBidDifference = 1.0
+    Buffer = Buffer.Linear(5L, 5)
+    AskBidDifference = 0.15
     Timeout = 5 |}
 
 for i = 1 to 100 do
