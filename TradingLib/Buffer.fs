@@ -30,9 +30,9 @@ module Buffer =
             if valid then
                 let t = data
                 data <- merge x
-                Log.Debug("Merge", $"{x}: {t} -> {data}")
+                Log.Debug("Merge", $"{count} {x}: {t} -> {data}")
             else
-                Log.Debug("Merge", $"{x}: Initial")
+                Log.Debug("Merge", $"{count} {x}: Initial")
                 data <- x
                 valid <- true
 
@@ -56,6 +56,7 @@ module Buffer =
         let mutable previous: time = 0L
         let floor (t:time) = t - (t % interval)
 
+        (*
         let extrapolate (diff: int) (output: Bar -> unit) (i: int): unit =
             let t = previous + interval * (int64 i)
             let p, c = buckets[0].Data, buckets[diff].Data
@@ -73,6 +74,7 @@ module Buffer =
                              Low    = extrapolateF(p.Low, c.Low)
                              Time   = extrapolateL(p.Epoch, c.Epoch)
                              Volume = extrapolateL(p.Volume, c.Volume) |})
+        *)
 
         interface Buffer with
             member this.Ingest(input: Bar, output: Bar -> unit): bool =
@@ -84,30 +86,27 @@ module Buffer =
                     previous <- current
                     true
                 else
-                    let temp = buckets.Previous()
-                    if input.Epoch < temp then
-                        Log.Debug("Error", $"Current = {input.Epoch} / Previous = {temp} / Floor = {current}")  // input.ToString())
-                    else
-                        Log.Debug("Ingest", $"{input.Epoch} / Previous = {temp} / Floor = {current}")  // input.ToString())
-                    output <| input
-                    buckets[0].Add input
-                    true
+                    assert (input.Epoch >= buckets.Previous())
+                    let diff = int <| (current - previous) / interval
 
-                (*let current = floor input.Epoch
-                if buckets[0].Count = 0 then
-                    buckets[0].Add input
-                    if input.Epoch % interval = 0 then output(input)
-                    previous <- current
-                    true
-                else
-                    if input.Epoch < buckets.Previous() then false else
-                        let diff = int <| (current - previous) / interval
+                (*
                         if diff >= size then
                             buckets.Reset() ; false
                         else
                             buckets[diff].Add input
-                            for i in [1 .. diff] do (extrapolate diff output i)
+                            for i in [1 .. diff] do (output <| buckets[i-1].Data)
+                            // (extrapolate diff output i)
                             buckets.Shift(diff) ; true
                 *)
+
+                    let temp = buckets.Previous()
+                    if input.Epoch < temp then
+                        Log.Debug("Error", $"Current = {input.Epoch} / Previous = {temp} / Floor = {current} / Diff = {diff}")
+                    else
+                        Log.Debug("Ingest", $"{input.Epoch} / Previous = {temp} / Floor = {current} / Diff = {diff}")
+                    output <| input
+                    buckets[0].Add input
+                    true
+
 
     let Linear z: Buffer = LinearBuffer z :> Buffer
