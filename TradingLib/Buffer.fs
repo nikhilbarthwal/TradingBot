@@ -78,7 +78,6 @@ module Buffer =
                 let current = floor input.Epoch
                 if buckets[0].Count = 0 then
                     buckets[0].Add input
-                    if input.Epoch % interval = 0 then output(input)
                     previous <- current
                     true
                 else
