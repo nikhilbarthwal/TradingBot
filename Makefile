@@ -3,7 +3,7 @@ version=net8.0
 os=$(shell uname -n)
 sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)
 
-ifeq ($(os), Linux)
+ifeq ($(os), linux)
 	runtime=linux-x64
 	inp=
 	out=.bin

@@ -50,11 +50,11 @@ module Order =
     [<Struct>] type Status = Placed | Triggered | Executed of bool | Cancelled
 
 
-[<Struct>]
+[<Struct>] //TODO: This should be heap based, not struct
 type Bar (param: struct {| Open: float; High: float; Low: float
                            Close: float; Time: time; Volume: int64 |}) =
 
-    member this.Valid = true
+    //TODO: Add a Valid parameter
     member this.Open = Utils.Normalize(param.Open)
     member this.High = Utils.Normalize(param.High)
     member this.Low = Utils.Normalize(param.Low)
