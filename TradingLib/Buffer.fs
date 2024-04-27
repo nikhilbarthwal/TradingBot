@@ -79,13 +79,18 @@ module Buffer =
                 if buckets[0].Count = 0 then
                     buckets[0].Add input
                     if input.Epoch % interval = 0 then output(input)
-                    previous <- current ; true
+                    previous <- current
+                    true
                 else
                     assert (input.Epoch >= buckets.Previous())
                     let diff = int <| (current - previous) / interval
-                    if diff >= size then (buckets.Reset() ; false) else
+                    if diff >= size then
+                        buckets.Reset()
+                        false
+                    else
                         buckets[diff].Add input
                         if diff > 0 then
                             extrapolate diff output
                             buckets.Shift(diff)
                         previous <- current ; true
+
