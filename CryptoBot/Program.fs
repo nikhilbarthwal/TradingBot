@@ -4,7 +4,7 @@ open TradingLib.Data
 
 let size = 10
 let data = [| for _ in 1 .. size -> Bar() |]
-let tickers: Ticker list = [ Crypto("BTC") ] // ; Crypto("BTC") ]
+let tickers: Ticker list = [ Crypto("BTC") ]
 
 let source: Source = Gemini.Source {|
     Tickers = tickers

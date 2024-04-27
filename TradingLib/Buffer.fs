@@ -92,4 +92,3 @@ module Buffer =
                             extrapolate diff output
                             buckets.Shift(diff)
                         previous <- current ; true
-
