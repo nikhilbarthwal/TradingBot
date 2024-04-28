@@ -1,7 +1,7 @@
 namespace TradingLib
 
 
-type Data = abstract Get: Bar[] -> bool
+type Data = abstract Get: Vector.Buffer<Bar> -> bool
 
 module Data =
 
@@ -18,9 +18,8 @@ module Data =
             member this.Insert(bar: Bar) = if not (ingest.Append bar) then reset()
             member this.Reset() = reset()
         interface Data with
-            member this.Get(l) =
-               //TODO: Add this check (for i in l do (assert not(i.Empty))) ; r
-               lock object (fun _ -> data.Get(l))
+            member this.Get(l: Vector.Buffer<Bar>) = lock object (fun _ -> data.Get(l))
+            //TODO: Add this check (for i in l do (assert not(i.Empty))) ; r
 
     type Exchange(tickers: Ticker list, size: int, buffer: Buffer) =
         let reader, writer =
