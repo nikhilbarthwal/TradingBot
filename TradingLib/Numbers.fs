@@ -1,14 +1,13 @@
 namespace TradingLib
 
 open System
-open System.Numerics
 
 
 type Fraction private (n0: bigint, d0: bigint) =
     let n, d =
         assert (d0 <> 0I)
-        let (n1, d1) = if (d0 < 0I) then ((-1I * n0), (-1I * d0)) else (n0, d0)
-        let g = BigInteger.GreatestCommonDivisor(n1, d1)
+        let n1, d1 = if (d0 < 0I) then ((-1I * n0), (-1I * d0)) else (n0, d0)
+        let g = System.Numerics.BigInteger.GreatestCommonDivisor(n1, d1)
         n1/g, d1/g
 
     member this.N = n
@@ -42,12 +41,6 @@ type Fraction private (n0: bigint, d0: bigint) =
     static member (==)(n1: Fraction, n2: Fraction) = (n1.N * n2.D = n2.N * n1.D)
 
     static member Reciprocal (f: Fraction) = Fraction(f.D, f.N)
-
-    interface IAdditionOperators<Fraction, Fraction, Fraction> with
-        static member (+) (n1: Fraction, n2: Fraction) = n1 + n2
-
-    interface IMultiplyOperators<Fraction, Fraction, Fraction> with
-        static member (*) (n1: Fraction, n2: Fraction) = n1 * n2
 
 
 type Complex(real: float, imaginary: float) =

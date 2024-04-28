@@ -26,10 +26,10 @@ module Vector =
 
     let Create<'T>(size: int) (f: int -> 'T): Vector<'T> = Buffer(size, f)
 
-    let Convolve<'T when 'T :> System.Numerics.IAdditionOperators<'T, 'T, 'T>
-                     and 'T :> System.Numerics.IMultiplyOperators<'T, 'T, 'T>>
-           (l: int) (f1: int -> 'T, f2: int -> 'T): 'T =
-        let f (sum: 'T) k = sum + (f1 k) * (f2 k)
+    let inline Convolve<'T when ^T: (static member (*) : 'T * 'T -> 'T)
+                            and ^T: (static member (+) : 'T * 'T -> 'T)>
+            (l: int) (f1: int -> 'T, f2: int -> 'T): 'T =
+        let f (sum: 'T) (k: int): 'T =  sum + (f1 k) * (f2 k)
         let init = (f1 0) * (f2 0) in (List.fold f init [1 .. l - 1])
 
     type Circular<'T>(size: int, f: int -> 'T) =
