@@ -29,7 +29,7 @@ type Ticker =
             | Crypto(symbol) -> symbol
 
 
-[<Struct>] type AccountInfo = { Total: float ; Cash: float}
+[<Struct>] type AccountInfo = { Total: float ; Profit: float }
 
 
 module Order =
@@ -47,7 +47,7 @@ module Order =
                 $"Ticker: {this.Ticker} / Quantity: {this.Quantity} / Price: " +
                 $"{this.Price} / ProfitPrice: {this.Profit} / LossPrice: {this.Loss}"
 
-    [<Struct>] type Status = Placed | Triggered | Executed of bool | Cancelled
+    [<Struct>] type Status = Placed | Triggered | Executed | Cancelled
 
 
 [<Struct>] //TODO: This should be heap based, not struct
@@ -69,17 +69,8 @@ type Bar (param: struct {| Open: float; High: float; Low: float
         $"{this.Low} / Timestamp: {ts} / Epoch: {this.Epoch} / Volume: {this.Volume}"
 
 
-(*
-type target = {Initial: float; Target: float; StopLoss: float} with
-    override this.ToString() = $"InitialCapital: {this.Initial} / "
-                             + $"TargetCapital: {this.Target} / "
-                             + $"StopLossCapital: {this.StopLoss}"
-
-*)
-
 type Client<'T> =
-    inherit IDisposable
-    abstract GetAccountInfo: unit -> AccountInfo
+    abstract AccountInfo: unit -> AccountInfo
     abstract CancelOrder: 'T -> bool
     abstract OrderStatus: 'T -> Order.Status
     abstract PlaceOrder: Order.Entry -> 'T

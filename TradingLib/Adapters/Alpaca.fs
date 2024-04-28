@@ -1,97 +1,69 @@
 namespace TradingLib
 
-open System.Text.Json
+open Alpaca.Markets
 
 
-module Alpaca =
+type Alpaca(apiKey: string, apiSecret: string) =
+    let secret = SecretKey(apiKey, apiSecret)
+    let client = Environments.Paper.GetAlpacaTradingClient(secret)
+    let error (ticker: Ticker) =
+        $"Currently, only Crypto is supported for Alpaca, not {ticker}"
 
-    type private Parser(tag: string, difference: float) =
+    let accountInfo() =
+        let task = client.GetAccountAsync()
+        task.RunSynchronously()
+        let result = task.Result
+        if result.IsTradingBlocked then
+            Log.Error("Alpaca", "Trading for this account is blocked")
 
-        let mutable bestAsk: Maybe<float> = No
-        let mutable bestBid: Maybe<float> = No
+        let total = if result.BuyingPower.HasValue then
+                        float <| result.BuyingPower.Value
+                    else
+                        Log.Error("Alpaca", "Unable to get total account value")
 
-        let processEvent (event: JsonElement): unit =
-            if (event.GetProperty("type").GetString() = "change" &&
-                event.GetProperty("reason").GetString() = "place") then
+        let profit = if result.Equity.HasValue then
+                         float <| result.Equity.Value - result.LastEquity
+                     else
+                         Log.Error("Alpaca", "Unable to get account equity value")
 
-                let price: float = float <| event.GetProperty("price").GetString()
-                let side: string = event.GetProperty("side").GetString()
+        { Total = total ; Profit = profit }
 
-                if side = "ask" then
-                    match bestAsk with
-                    | Yes(ask) -> if price < ask then bestAsk <- Yes(price)
-                    | No -> bestAsk <- Yes(price)
+    let placeOrder(order: Order.Entry): IOrder =
+        try
+            let symbol = match order.Ticker with
+                         | Crypto(sym) -> sym + "USD"
+                         | ticker -> Log.Error("Alpaca", error ticker)
 
-                if side = "bid" then
-                    match bestBid with
-                    | Yes(bid) -> if price > bid then bestBid <- Yes(price)
-                    | No -> bestBid <- Yes(price)
+            let quantity: OrderQuantity = OrderQuantity.FromInt64(order.Quantity)
+            let takeProfitLimitPrice = decimal <| order.Profit
+            let stopLossStopPrice = decimal <| order.Loss
+            let task = client.PostOrderAsync(LimitOrder.Buy(symbol, quantity,
+                                     decimal <| order.Price).WithDuration(
+                TimeInForce.Day).Bracket(takeProfitLimitPrice, stopLossStopPrice))
+            task.RunSynchronously()
+            task.Result
+        with e -> Log.Exception("Alpaca", e.Message) e
 
-        let processMessage (json: JsonElement): unit =
-            if json.GetProperty("socket_sequence").GetInt64() > 0 then
-                for k in [1 .. json.GetProperty("events").GetArrayLength()] do
-                    processEvent <| json.GetProperty("events").Item(k - 1)
+    let cancelOrder(id: System.Guid): bool =
+        try
+            let task = client.CancelOrderAsync(id)
+            task.RunSynchronously()
+            task.Result
+        with e -> Log.Exception("Alpaca", e.Message) e
 
-        let insert (ask: float) (bid: float) (ingest: Bar -> unit)
-                   (bar: float -> Bar): unit =
+    let orderStatus(id: System.Guid): Order.Status =
+        try
+            let task = client.GetOrderAsync(id)
+            task.RunSynchronously()
+            let iOrder = task.Result
+            if iOrder.CancelledAtUtc.HasValue then Order.Status.Cancelled else
+                if iOrder.FilledAtUtc.HasValue then Order.Status.Executed else
+                    if iOrder.FilledQuantity > 0.0m then Order.Status.Triggered else
+                        Order.Status.Placed
+        with e -> Log.Exception("Alpaca", e.Message) e
 
-            if bid >= ask then (ingest <| bar bid) else
-                if ((100.0 * (ask - bid)) / bid) < difference then
-                    ingest <| bar ((ask + bid) / 2.0)
-
-        let getBar (json: JsonElement) (price : float): Bar =
-            bestAsk <- No ; bestBid <- No
-            Bar {| Open = price
-                   High = price
-                   Low = price
-                   Close = price
-                   Time = json.GetProperty("timestamp").GetInt64()
-                   Volume = -1 |}
-
-        let parse(message: string) (ingest: Bar -> unit): unit =
-            let json: JsonElement = JsonDocument.Parse(message).RootElement
-            processMessage json
-            match bestAsk, bestBid with
-            | Yes(ask), Yes(bid) -> insert ask bid ingest <| getBar json
-            | _ -> ()
-
-        member this.Parse(message: string, ingest: Bar -> unit): unit =
-            try (parse message ingest) with e ->
-                Log.Error(tag, $"Unable to parse {message} -> {e.Message}")
-
-
-    let Source(z: {|
-            Tickers: Ticker list
-            Size: int
-            Buffer: Buffer
-            AskBidDifference: float
-            Timeout: int |}) =
-
-        let symbol (ticker: Ticker): string =
-            match ticker with
-            | Crypto(symbol) -> symbol
-            | _ -> Log.Error("Gemini", $"Gemini only supports Crypto, not {ticker}")
-
-        let symbols = Utils.CreateDictionary(z.Tickers, symbol)
-        let url ticker = $"wss://api.gemini.com/v1/marketdata/{symbols[ticker]}USD"
-        let tags = Utils.CreateDictionary(z.Tickers,
-                                          fun ticker -> $"Gemini[{symbols[ticker]}]")
-        let parser ticker = Parser(tags[ticker], z.AskBidDifference)
-        let parsers = Utils.CreateDictionary(z.Tickers, parser)
-
-        let reconnect(ticker: Ticker, msg: string) =
-            Log.Warning(tags[ticker], $"Reconnecting for {symbols[ticker]} -> {msg}")
-
-        Socket.Source.Multi({new Socket.Adapter.Multi with
-            member this.Tickers = z.Tickers
-            member this.Timeout = z.Timeout
-            member this.Start _ = ()
-            member this.Buffer = z.Buffer
-            member this.Size = z.Size
-            member this.Url(ticker) = url(ticker)
-            member this.Tag(ticker) = tags[ticker]
-            member this.Reconnect(ticker, msg) = reconnect(ticker, msg)
-            member this.Send(_, _) = ()
-            member this.Dispose() = ()
-            member this.Receive(ticker, msg, insert) =
-                parsers[ticker].Parse(msg, insert) })
+    interface Client<System.Guid> with
+        member this.AccountInfo(): AccountInfo = accountInfo()
+        member this.PlaceOrder(order): System.Guid = placeOrder(order).OrderId
+        member this.CancelOrder(id): bool = cancelOrder(id)
+        member this.OrderStatus(id): Order.Status = orderStatus(id)
