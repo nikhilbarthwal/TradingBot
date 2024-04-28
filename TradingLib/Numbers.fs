@@ -48,3 +48,21 @@ type Fraction private (n0: bigint, d0: bigint) =
 
     interface IMultiplyOperators<Fraction, Fraction, Fraction> with
         static member (*) (n1: Fraction, n2: Fraction) = n1 * n2
+
+
+type Complex(real: float, imaginary: float) =
+    member this.Real = real
+    member this.Imaginary = imaginary
+
+    static member (+) (c1: Complex, c2: Complex) =
+        Complex(c1.Real + c2.Real, c1.Imaginary + c2.Imaginary)
+
+    static member (-) (c1: Complex, c2: Complex) =
+        Complex(c1.Real - c2.Real, c1.Imaginary - c2.Imaginary)
+
+    static member (*) (c1: Complex, c2: Complex) =
+        let real = c1.Real * c2.Real - c1.Imaginary * c2.Imaginary
+        let imaginary = c1.Real * c2.Imaginary + c1.Imaginary * c2.Real
+        Complex(real, imaginary)
+
+    override this.ToString() = $"{this.Real} + {this.Imaginary}i"
