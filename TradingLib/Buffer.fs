@@ -1,9 +1,9 @@
 namespace TradingLib
 
 
-type Buffer = abstract member Ingest: Bar * (Bar -> unit) -> bool
-
 module Buffer =
+
+    type Ingest = abstract member Append: Bar -> bool
 
     type private Bucket() =
         let mutable data = Bar()
@@ -29,7 +29,6 @@ module Buffer =
             if count > 0 then (data <- merge x) else (data <- x)
             count <- count + 1
 
-
     type private Buckets(size: int) =
         let mutable pos = 0
         let buckets = [| for _ in [1 .. size] do Bucket() |]
@@ -45,7 +44,7 @@ module Buffer =
         member this.Reset() =
             pos <- 0 ; for i in [0 .. size - 1] do buckets[i].Reset()
 
-    type Linear(interval: time, size: int) =
+    type private LinearBuffer(interval: time, size: int, output: Bar -> unit) =
 
         let buckets = Buckets(size)
         let mutable previous: time = 0L
@@ -73,8 +72,8 @@ module Buffer =
                                  Time   = previous + interval * (int64 <| k - 1)
                                  Volume = prev.Volume + dv |})
 
-        interface Buffer with
-            member this.Ingest(input: Bar, output: Bar -> unit): bool =
+        interface Ingest with
+            member this.Append(input: Bar): bool =
                 let current = floor input.Epoch
                 if buckets[0].Count = 0 then
                     buckets[0].Add input
@@ -92,3 +91,8 @@ module Buffer =
                             extrapolate diff output
                             buckets.Shift(diff)
                         previous <- current ; true
+
+    let Linear(interval, size) output: Ingest = LinearBuffer(interval, size, output)
+
+
+type Buffer = (Bar -> unit) -> Buffer.Ingest

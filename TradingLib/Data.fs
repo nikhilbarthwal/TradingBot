@@ -13,9 +13,9 @@ module Data =
         let data = Vector.Circular(size, fun _ -> Bar())
         let insert bar = lock object (fun _ -> data.Insert(bar))
         let reset() = lock object (fun _ -> data.Reset())
-        let ingest bar = buffer.Ingest(bar, insert)
+        let ingest = buffer insert
         interface Store with
-            member this.Insert(bar: Bar) = if not (ingest bar) then reset()
+            member this.Insert(bar: Bar) = if not (ingest.Append bar) then reset()
             member this.Reset() = reset()
         interface Data with
             member this.Get(l) =
