@@ -8,6 +8,7 @@ open System.Collections.Immutable
 type time = int64
 type Dictionary<'K,'V> = System.Collections.Immutable.ImmutableDictionary<'K,'V>
 
+
 module Utils =
 
     let private precision = 3
@@ -17,15 +18,17 @@ module Utils =
         let estZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")
         TimeZoneInfo.ConvertTimeFromUtc(dateTimeOffset.DateTime, estZone)
 
-    let Normalize(x: float) = Math.Round(x, precision)
-    let CurrentTime() = DateTime.Now.ToString("F")
+    let inline Normalize(x: float) = Math.Round(x, precision)
+    let inline CurrentTime() = DateTime.Now.ToString("F")
 
     let CreateDictionary<'V, 'K when 'K: equality>(l: 'K list, f: 'K -> 'V) =
         let data = System.Collections.Generic.Dictionary<'K, 'V>(l.Length)
         (for x in l do data.Add(x, f x)) ; data.ToImmutableDictionary()
 
-    let Wait (timeout: int) =
+    let inline Wait (timeout: int) =
         assert (timeout > 0) ; Threading.Thread.Sleep(timeout * 1000)
+
+    let inline Elapsed (time: DateTime) = DateTime.Now > time
 
 
 module Log =

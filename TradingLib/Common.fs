@@ -46,7 +46,6 @@ module Vector =
         member this.Get(buffer: Buffer<'T>): bool =
             if count < size then false else (buffer.Overwrite(get) ; true)
 
-
 type Matrix<'V, 'T when 'T :> Vector<'V>> private(rows: int, f: int -> 'T) =
 
     let data:Vector<'T> = Vector.Create rows f

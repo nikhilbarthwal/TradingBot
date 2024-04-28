@@ -38,11 +38,13 @@ module Order =
     type Entry (param: struct {| Ticker: Ticker; Quantity: uint; Price: float
                                  Profit: float; Loss: float |}) =
 
-        member x.Ticker = param.Ticker
-        member x.Quantity: int = int param.Quantity
-        member x.Price = Utils.Normalize(param.Price)
-        member x.Profit = Utils.Normalize(param.Profit)
-        member x.Loss = Utils.Normalize(param.Loss)
+        member this.Ticker = param.Ticker
+        member this.Quantity: int = int param.Quantity
+        member this.Price = assert (param.Price > 0) ; Utils.Normalize(param.Price)
+        member this.Profit = Utils.Normalize(param.Profit)
+        member this.Loss = Utils.Normalize(param.Loss)
+        member this.ProfitPercent() = (100.0 * (this.Profit - this.Price))/this.Price
+        member this.LossPercent() = (100.0 * (this.Price - this.Loss))/this.Price
         with override this.ToString() =
                 $"Ticker: {this.Ticker} / Quantity: {this.Quantity} / Price: " +
                 $"{this.Price} / ProfitPrice: {this.Profit} / LossPrice: {this.Loss}"
