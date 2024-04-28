@@ -29,7 +29,7 @@ type Ticker =
             | Crypto(symbol) -> symbol
 
 
-[<Struct>] type AccountInfo = { Total: float ; Cash: float ; Profit: float }
+[<Struct>] type AccountInfo = { Total: float ; Profit: float }
 
 
 module Order =
@@ -47,7 +47,7 @@ module Order =
                 $"Ticker: {this.Ticker} / Quantity: {this.Quantity} / Price: " +
                 $"{this.Price} / ProfitPrice: {this.Profit} / LossPrice: {this.Loss}"
 
-    [<Struct>] type Status = Placed | Triggered | Executed of bool | Cancelled
+    [<Struct>] type Status = Placed | Triggered | Executed | Cancelled
 
 
 [<Struct>] //TODO: This should be heap based, not struct
@@ -69,25 +69,11 @@ type Bar (param: struct {| Open: float; High: float; Low: float
         $"{this.Low} / Timestamp: {ts} / Epoch: {this.Epoch} / Volume: {this.Volume}"
 
 
-type target = {Initial: float; Target: float; StopLoss: float} with
-    override this.ToString() = $"InitialCapital: {this.Initial} / "
-                             + $"TargetCapital: {this.Target} / "
-                             + $"StopLossCapital: {this.StopLoss}"
+type Client<'T> =
+    abstract AccountInfo: unit -> AccountInfo
+    abstract CancelOrder: 'T -> bool
+    abstract OrderStatus: 'T -> Order.Status
+    abstract PlaceOrder: Order.Entry -> 'T
 
 
-type Client =
-    inherit IDisposable
-    abstract CancelOrder: Ticker -> bool
-    abstract CancelAllOrders: unit -> bool
-    abstract GetAccountInfo: unit -> AccountInfo
-    // abstract GetPositions: unit -> Maybe<Dictionary<Ticker, int * float>>
-    // abstract Get: Ticker -> Maths.Array<Bar> -> bool
-    abstract OrderStatus: Ticker -> Order.Status
-    abstract Stream: int -> bool
-    abstract PlaceOrder: Order.Entry -> bool
-    abstract ResetOrders: unit -> unit
-    abstract VerifyPlacedOrders: unit -> bool
-    abstract VerifyCompletedOrders: unit -> bool
-
-
-type Strategy = abstract Run: float -> bool
+type Strategy = abstract Execute: Vector<Bar> -> Maybe<Order.Entry>
