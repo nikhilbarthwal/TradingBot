@@ -1,6 +1,7 @@
 app=CryptoBot
 version=net8.0
-os=$(shell uname -n)
+os=$(shell uname -s)
+
 sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)
 
 ifeq ($(os), linux)
