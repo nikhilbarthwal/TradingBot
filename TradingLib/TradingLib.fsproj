@@ -13,6 +13,7 @@
 		<Compile Include="Data.fs" />
 		<Compile Include="Socket.fs"/>
 		<Compile Include="Adapters/Gemini.fs"/>
+		<Compile Include="Adapters/Alpaca.fs"/>
 	</ItemGroup>
 
 	<ItemGroup>
