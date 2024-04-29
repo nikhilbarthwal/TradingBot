@@ -50,29 +50,30 @@ module Execution =
         Log.Info("Execute", $"Waiting for Start time of {str}")
         while not(Utils.Elapsed start) do (Utils.Wait delay)
 
+    let stop(execution: Execution): Maybe<bool> = Yes(true) // TODO
+
+    [<TailCall>]
+    let rec loop (execution: Execution) (orders: Orders) (k: int): bool =
+        match stop(execution) with
+        | Yes(b) -> b
+        | No -> let order = orders.Get()
+                match order with
+                | Yes(o) -> execution.Execute(o)
+                | No -> Utils.Wait execution.Delay
+                loop execution orders <| k + 1
+
     let private run (execution: Execution) (source: Data.Source): bool =
         Log.Info("Main", "Initializing client ...")
         let client = execution.Client()
         let info = client.AccountInfo()
+        Log.Info("Main", "Initializing strategy ...")
+        let strategy = execution.Strategy()
         if info.Total < execution.InitialCapital then
             Log.Error("Main", $"Account doesn't have initial capital = {info.Total}")
         else
             match execution.StartTime with No -> ()
                                          | Yes(start) -> wait start execution.Delay
-
-            Log.Info("Main", "Initializing strategy ...")
-            let strategy = execution.Strategy()
-            let orders = Orders(source, strategy)
-            let stop(): Maybe<bool> = Yes(true) // TODO
-
-            let rec loop() = match stop() with
-                             | Yes(b) -> b
-                             | No -> let order = orders.Get()
-                                     match order with
-                                     | Yes(o) -> execution.Execute(o)
-                                     | No -> Utils.Wait execution.Delay
-                                     loop()
-            loop()
+            let orders = Orders(source, strategy) in (loop execution orders 1)
 
     let Run(execution: Execution): bool =
         Log.Info("Main", $" ****** {execution.Welcome} ***** ")
