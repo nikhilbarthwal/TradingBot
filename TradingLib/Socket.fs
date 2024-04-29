@@ -83,6 +83,7 @@ module Socket =
             interface Data.Source with
                 member this.Data = exchange.Data
                 member this.Tickers = z.Tickers
+                member this.Size = z.Size
                 member this.Dispose() = z.Dispose() ; connection.Dispose()
 
         type private MultiSource(z: Adapter.Multi) =
@@ -99,6 +100,7 @@ module Socket =
             let connections = Utils.CreateDictionary(z.Tickers, socket)
 
             interface Data.Source with
+                member this.Size = z.Size
                 member this.Data = exchange.Data
                 member this.Tickers = z.Tickers
                 member this.Dispose() =

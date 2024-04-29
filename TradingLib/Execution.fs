@@ -10,11 +10,11 @@ type Execution =
     abstract InitialCapital: float
     abstract TargetCapital: float
     abstract StopLossCapital: float
-    abstract Strategy: Strategy
+    abstract Strategy: unit -> Strategy
     abstract Client: unit -> Client<'T>
     abstract Source: unit -> Data.Source
     abstract Delay: int
-    abstract
+    abstract Execute: Order.Entry -> unit
 
 module Execution =
 
@@ -38,26 +38,11 @@ module Execution =
         member this.Get(oldOrder: Maybe<Order.Entry>) = let newOrder = get() in
                                                         best(newOrder, oldOrder)
 
-    type Order(source: Data.Source, strategy: Strategy) =
-        let state (ticker: Ticker) = State(source[ticker], strategy, source.Size)
+    type Orders(source: Data.Source, strategy: Strategy) =
+        let state (t: Ticker) = State(source.Data[t], strategy, source.Size)
         let map = Utils.CreateDictionary(source.Tickers, state)
         let get (order: Maybe<Order.Entry>) (ticker: Ticker) = map[ticker].Get(order)
-        member this.Order() = source.Tickers |> List.fold get No
-
-
-        match order with Yes(order) -> execute(order) | No -> Delay
-        check
-
-    type private loop(execution: Execution, source: Data.Source) =
-
-        let input: Vector<Bar> = Vector.Buffer(source.BufferSize, fun _ -> Bar())
-        let mutable previous =
-            while not(sourceUtils.Elapsed start) do (Utils.Wait execution.Delay)
-
-
-        [<TailCall>]
-        let wait() =
-
+        member this.Get() = source.Tickers |> List.fold get No
 
     let private wait (start: System.DateTime) (delay: int) =
         let str = start.ToString("F")
@@ -66,6 +51,8 @@ module Execution =
         while not(Utils.Elapsed start) do (Utils.Wait delay)
 
     let private run (execution: Execution) (source: Data.Source): bool =
+        Log.Info("Main", "Initializing client ...")
+        let client = execution.Client()
         let info = client.AccountInfo()
         if info.Total < execution.InitialCapital then
             Log.Error("Main", $"Account doesn't have initial capital = {info.Total}")
@@ -73,17 +60,19 @@ module Execution =
             match execution.StartTime with No -> ()
                                          | Yes(start) -> wait start execution.Delay
 
+            Log.Info("Main", "Initializing strategy ...")
+            let strategy = execution.Strategy()
+            let orders = Orders(source, strategy)
+            let stop(): Maybe<bool> = Yes(true) // TODO
 
-            while not(Utils.Elapsed start) do (Utils.Wait delay)
-            let loop
-                let start = param.StartTime.ToString("F")
-
-
-                let strategy: Strategy  = param.StrategyFunction client
-                if client.Stream(delay) then
-                    Log.Info("Execute", "Streaming all data") ; strategy.Run(initial)
-                else
-                    Log.Error("Execute", "Trading bot failed to stream data!")
+            let rec loop() = match stop() with
+                             | Yes(b) -> b
+                             | No -> let order = orders.Get()
+                                     match order with
+                                     | Yes(o) -> execution.Execute(o)
+                                     | No -> Utils.Wait execution.Delay
+                                     loop()
+            loop()
 
     let Run(execution: Execution): bool =
         Log.Info("Main", $" ****** {execution.Welcome} ***** ")
@@ -92,14 +81,3 @@ module Execution =
         let result: bool = try (run execution source) finally source.Dispose()
         Log.Info("Execute", $"Trading bot ended at {Utils.CurrentTime()}!")
         if result then true else false
-
-(*
-
-    let Main (param: struct {| StartTime: System.DateTime
-                               EndTime: System.DateTime
-                               ClientFunction: unit -> Client
-                               StrategyFunction: Client -> Strategy |}): int =
-
-
-
-*)

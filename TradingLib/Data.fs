@@ -33,6 +33,6 @@ module Data =
         member this.BufferSize: int = size
 
     type Source = inherit System.IDisposable
-                  abstract Item: Ticker -> Data
+                  abstract Data: Dictionary<Ticker, Data>
                   abstract Tickers: Ticker list
                   abstract Size: int

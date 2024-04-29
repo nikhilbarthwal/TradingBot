@@ -11,14 +11,12 @@ type Dictionary<'K,'V> = System.Collections.Immutable.ImmutableDictionary<'K,'V>
 
 module Utils =
 
-    let private precision = 3
-
     let ToDateTime(epoch: int64): DateTime =
         let dateTimeOffset  = DateTimeOffset.FromUnixTimeSeconds(epoch)
         let estZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")
         TimeZoneInfo.ConvertTimeFromUtc(dateTimeOffset.DateTime, estZone)
 
-    let inline Normalize(x: float) = Math.Round(x, precision)
+    let inline Normalize(x: float) = Math.Round(x, 3)
     let inline CurrentTime() = DateTime.Now.ToString("F")
 
     let CreateDictionary<'V, 'K when 'K: equality>(l: 'K list, f: 'K -> 'V) =
