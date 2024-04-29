@@ -1,7 +1,9 @@
 app=TradingApp
 version=net8.0
 os=$(shell uname -s)
-sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)
+sources=$(wildcard */*.fs */*/*.fs */*.fsproj)
+test_sources=$(wildcard */*/*.py */*/*.fs */*.fsproj)
+build_sources=$(wildcard Makefile *.sln build.bat)
 
 ifeq ($(os), Linux)
 	runtime=linux-x64
@@ -38,10 +40,16 @@ print.ps: ${sources}
 print.pdf: print.ps
 	ps2pdf -o $@ $^
 
-format: ${sources}
+format: ${sources} ${test_sources} ${build_sources}
 	cp ~/Workspace/convert.class .
-	java convert ${sources} *.bat Makefile
+	java convert $^
 	rm convert.class
+
+test:
+	rm -rf Test/Temp
+	mkdir Test/Temp
+	cd Test/ ; dotnet run ; cd ..
+	PYTHONPATH="FilterTest/Python" python3 Test/Python/filter_test.py
 
 clean:
 	rm -rf */bin */obj *.bin *.exe *.log print.pdf print.ps
