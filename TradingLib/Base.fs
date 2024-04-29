@@ -78,4 +78,4 @@ type Client<'T> =
     abstract PlaceOrder: Order.Entry -> 'T
 
 
-type Strategy = abstract Execute: Vector<Bar> -> Maybe<Order.Entry>
+type Strategy = abstract Execute: Ticker * Vector<Bar> -> Maybe<Order.Entry>

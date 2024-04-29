@@ -10,9 +10,7 @@ type Alpaca(apiKey: string, apiSecret: string) =
         $"Currently, only Crypto is supported for Alpaca, not {ticker}"
 
     let accountInfo() =
-        let task = client.GetAccountAsync()
-        task.RunSynchronously()
-        let result = task.Result
+        let result = client.GetAccountAsync().Result
         if result.IsTradingBlocked then
             Log.Error("Alpaca", "Trading for this account is blocked")
 
