@@ -6,7 +6,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Filter.fs" />
         <Compile Include="Program.fs"/>
+        <Compile Include="Fourier.fs" />
     </ItemGroup>
 
     <ItemGroup>
