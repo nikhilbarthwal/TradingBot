@@ -4,7 +4,7 @@ os=$(shell uname -s)
 
 sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)
 
-ifeq ($(os), linux)
+ifeq ($(os), Linux)
 	runtime=linux-x64
 	inp=
 	out=.bin

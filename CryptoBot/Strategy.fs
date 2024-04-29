@@ -1,5 +1,7 @@
 namespace CryptoBot
 
+open TradingLib
+
+
 type DoubleMovingAverage(short: int, long: int) =
-    member this.Short = short
-    member this.Long = long
+    interface Strategy with member this.Execute(_) = No

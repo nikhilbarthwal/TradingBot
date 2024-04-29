@@ -22,7 +22,7 @@ type Fraction private (n0: bigint, d0: bigint) =
         let db = float((n * 1000I * 1000I * 1000I) / d)
         db / (1000.0 * 1000.0 * 1000.0)
 
-    override this.ToString() = let db = this.ToFloat() in $"%.9f{db}"
+    override this.ToString() = let db = this.ToFloat() in $"%.6f{db}"
 
     static member ToFloat(f: Fraction) = f.ToFloat()
 
