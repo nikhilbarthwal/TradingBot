@@ -46,11 +46,11 @@ module Execution =
 
     let private wait (start: System.DateTime) (delay: int) =
         let str = start.ToString("F")
-        // Get Client and initialize strategy here!
         Log.Info("Execute", $"Waiting for Start time of {str}")
         while not(Utils.Elapsed start) do (Utils.Wait delay)
 
-    let stop(execution: Execution): Maybe<bool> = Yes(true) // TODO
+    // TODO: Complete this code!
+    let stop(execution: Execution): Maybe<bool> = Yes(true)
 
     [<TailCall>]
     let rec loop (execution: Execution) (orders: Orders) (k: int): bool =
