@@ -1,4 +1,4 @@
-app=CryptoBot
+app=TradingApp
 version=net8.0
 os=$(shell uname -s)
 sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)
@@ -37,6 +37,11 @@ print.ps: ${sources}
 
 print.pdf: print.ps
 	ps2pdf -o $@ $^
+
+format: ${sources}
+	cp ~/Workspace/convert.class .
+	java convert ${sources} *.bat Makefile
+	rm convert.class
 
 clean:
 	rm -rf */bin */obj *.bin *.exe *.log print.pdf print.ps

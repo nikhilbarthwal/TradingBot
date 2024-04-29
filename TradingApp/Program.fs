@@ -2,7 +2,8 @@ namespace TradingApp
 
 open TradingLib
 
+type Curve = abstract member Filter: int * Vector<Bar> * Vector.Buffer<Bar> -> bool
+             abstract member Iterations: int
 
-type Curve = abstract member Filter: Vector<Bar> * Vector.Buffer<Bar> -> bool
-
- // Curve for Polynomial & Fourier
+module Program =
+    printfn "Hello World!"
