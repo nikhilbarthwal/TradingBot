@@ -5,6 +5,19 @@ open TradingLib
 
 module Program =
 
+    (* type Execution =
+    abstract Welcome: string
+    abstract StartTime: Maybe<System.DateTime>
+    abstract EndTime: Maybe<System.DateTime>
+    abstract InitialCapital: float
+    abstract TargetCapital: float
+    abstract StopLossCapital: float
+    abstract Strategy: unit -> Strategy
+    abstract Client: unit -> Client<'T>
+    abstract Source: unit -> Data.Source
+    abstract Delay: int
+    abstract Execute: Order.Entry -> unit *)
+
     let test() =
         let size = 10
         let data = Vector.Buffer(size, fun _ -> Bar())

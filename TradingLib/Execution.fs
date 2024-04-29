@@ -18,7 +18,7 @@ type Execution =
 
 module Execution =
 
-    type private State(source: Data, strategy: Strategy, size: int) =
+    type private State(source: Data, strategy: Strategy, size: int, ticker: Ticker) =
         let mutable previous: time = 0L
         let data = Vector.Buffer(size, fun _ -> Bar())
         let get(): Maybe<Order.Entry> =
@@ -26,7 +26,7 @@ module Execution =
                 let current = data[0].Epoch
                 assert (current >= previous)
                 if current = previous then No else previous <- current
-                                                   strategy.Execute(data)
+                                                   strategy.Execute(ticker, data)
 
         let best: Maybe<Order.Entry> * Maybe<Order.Entry> -> _ = function
             | No, No -> No
@@ -39,7 +39,7 @@ module Execution =
                                                         best(newOrder, oldOrder)
 
     type Orders(source: Data.Source, strategy: Strategy) =
-        let state (t: Ticker) = State(source.Data[t], strategy, source.Size)
+        let state (t: Ticker) = State(source.Data[t], strategy, source.Size, t)
         let map = Utils.CreateDictionary(source.Tickers, state)
         let get (order: Maybe<Order.Entry>) (ticker: Ticker) = map[ticker].Get(order)
         member this.Get() = source.Tickers |> List.fold get No
@@ -49,18 +49,24 @@ module Execution =
         Log.Info("Execute", $"Waiting for Start time of {str}")
         while not(Utils.Elapsed start) do (Utils.Wait delay)
 
-    // TODO: Complete this code!
-    let stop(execution: Execution): Maybe<bool> = Yes(true)
+    let stop (execution: Execution) (client: Client<'T>): Maybe<bool> =
+        let info = client.AccountInfo()
+        match info.Total with
+        | balance when balance >= execution.TargetCapital -> Yes(true)
+        | balance when balance <= execution.StopLossCapital -> Yes(false)
+        | _ -> match execution.EndTime with
+               | Yes(t) -> if t >= System.DateTime.Now then Yes(false) else No
+               | No -> No
 
     [<TailCall>]
-    let rec loop (execution: Execution) (orders: Orders) (k: int): bool =
-        match stop(execution) with
+    let rec loop (execution: Execution) (orders: Orders) (client: Client<'T>): bool =
+        match (stop execution client) with
         | Yes(b) -> b
         | No -> let order = orders.Get()
                 match order with
                 | Yes(o) -> execution.Execute(o)
                 | No -> Utils.Wait execution.Delay
-                loop execution orders <| k + 1
+                loop execution orders client
 
     let private run (execution: Execution) (source: Data.Source): bool =
         Log.Info("Main", "Initializing client ...")
@@ -73,7 +79,7 @@ module Execution =
         else
             match execution.StartTime with No -> ()
                                          | Yes(start) -> wait start execution.Delay
-            let orders = Orders(source, strategy) in (loop execution orders 1)
+            let orders = Orders(source, strategy) in (loop execution orders client)
 
     let Run(execution: Execution): bool =
         Log.Info("Main", $" ****** {execution.Welcome} ***** ")
