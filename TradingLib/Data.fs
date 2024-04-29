@@ -17,9 +17,9 @@ module Data =
         interface Store with
             member this.Insert(bar: Bar) = if not (ingest.Append bar) then reset()
             member this.Reset() = reset()
-        interface Data with
-            member this.Get(l: Vector.Buffer<Bar>) = lock object (fun _ -> data.Get(l))
-            //TODO: Add this check (for i in l do (assert not(i.Empty))) ; r
+        interface Data with member this.Get(l) = lock object (fun _ -> data.Get(l))
+        //TODO: Add this check (for i in l do (assert not(i.Empty))) ; r
+
 
     type Exchange(tickers: Ticker list, size: int, buffer: Buffer) =
         let reader, writer =
@@ -30,8 +30,9 @@ module Data =
         member this.Item with get(ticker: Ticker): Store = writer[ticker]
         member this.Data = reader
         member this.Tickers: Ticker list = tickers
+        member this.BufferSize: int = size
 
-    type Source =
-        inherit System.IDisposable
-        abstract Data: Dictionary<Ticker, Data>
-        abstract Tickers: Ticker list
+    type Source = inherit System.IDisposable
+                  abstract Data: Dictionary<Ticker, Data>
+                  abstract Tickers: Ticker list
+                  abstract Size: int
