@@ -3,7 +3,7 @@ namespace TradingLib
 open TradingLib
 
 
-type Execution =
+type Execution<'T> =
     abstract Welcome: string
     abstract StartTime: Maybe<System.DateTime>
     abstract EndTime: Maybe<System.DateTime>
@@ -49,7 +49,7 @@ module Execution =
         Log.Info("Execute", $"Waiting for Start time of {str}")
         while not(Utils.Elapsed start) do (Utils.Wait delay)
 
-    let stop (execution: Execution) (client: Client<'T>): Maybe<bool> =
+    let stop (execution: Execution<'T>) (client: Client<'T>): Maybe<bool> =
         let info = client.AccountInfo()
         match info.Total with
         | balance when balance >= execution.TargetCapital -> Yes(true)
@@ -59,7 +59,8 @@ module Execution =
                | No -> No
 
     [<TailCall>]
-    let rec loop (execution: Execution) (orders: Orders) (client: Client<'T>): bool =
+    let rec loop (execution: Execution<'T>) (orders: Orders)
+                 (client: Client<'T>): bool =
         match (stop execution client) with
         | Yes(b) -> b
         | No -> let order = orders.Get()
@@ -68,7 +69,7 @@ module Execution =
                 | No -> Utils.Wait execution.Delay
                 loop execution orders client
 
-    let private run (execution: Execution) (source: Data.Source): bool =
+    let private run (execution: Execution<'T>) (source: Data.Source): bool =
         Log.Info("Main", "Initializing client ...")
         let client = execution.Client()
         let info = client.AccountInfo()
@@ -81,7 +82,7 @@ module Execution =
                                          | Yes(start) -> wait start execution.Delay
             let orders = Orders(source, strategy) in (loop execution orders client)
 
-    let Run(execution: Execution): bool =
+    let Run(execution: Execution<'T>): bool =
         Log.Info("Main", $" ****** {execution.Welcome} ***** ")
         Log.Info("Main", $"Trading bot starting at {Utils.CurrentTime()}")
         let source = execution.Source()
