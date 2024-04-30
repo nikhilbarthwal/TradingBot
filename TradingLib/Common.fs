@@ -72,22 +72,26 @@ type MatrixConst<'T> = Matrix<'T, Vector<'T>>
 type MatrixVar<'T> = Matrix<'T, Vector.Buffer<'T>>
 
 
-type Node<'T, 'R> =
+type Node<'Input, 'Output> =
     abstract Size: int
-    abstract Combine: 'T * 'R * 'R -> 'R
-    abstract Split: unit -> Pair<Node<'T, 'R>, Node<'T, 'R>>
-    abstract Init: 'T -> 'R
+    abstract Combine: Vector<'Input> * Vector.Buffer<'Output> *
+                      Maybe<Vector<'Output>> * Maybe<Vector<'Output>> -> bool
+    abstract Split: unit -> Pair<Node<'Input, 'Output>, Node<'Input, 'Output>>
+    abstract Init: Vector<'Input> * Vector.Buffer<'Output> -> bool
 
-type Tree<'T, 'R, 'N when 'N :> Node<'T, 'R>>(z: 'N) =
-    let subTree = if z.Size = 1 then No else
-                      assert (z.Size % 2 = 0)
-                      let half = z.Size / 2
-                      let sub = z.Split()
-                      assert ((sub.Left.Size = half) && (sub.Right.Size = half))
-                      Yes({Left = Tree(sub.Left) ; Right = Tree(sub.Right)})
+type Tree<'Input, 'Output>(z: Node<'Input, 'Output>, dummy: unit -> 'Output) =
+    let data = Vector.Buffer(z.Size, fun _ -> dummy())
+    let subTree =
+        if z.Size = 1 then No else
+            assert (z.Size % 2 = 0)
+            let half = z.Size / 2
+            let sub = z.Split()
+            assert ((sub.Left.Size = half) && (sub.Right.Size = half))
+            Yes({Left = Tree(sub.Left, dummy) ; Right = Tree(sub.Right, dummy)})
 
-    member this.Eval(x: 'T): 'R =
+    member this.Data: Vector<'Output> = data
+    member this.Eval(x: Vector<'Input>): bool =
+        let f (t: Tree<'Input, 'Output>) = if t.Eval(x) then Yes(t.Data) else No
         match subTree with
-        | No -> z.Init(x)
-        | Yes(sub) -> let left = sub.Left.Eval(x) in let right = sub.Right.Eval(x)
-                      z.Combine(x, left, right)
+        | No -> z.Init(x, data)
+        | Yes(sub) -> z.Combine(x, data, f(sub.Left), f(sub.Right))

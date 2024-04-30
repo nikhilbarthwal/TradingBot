@@ -3,68 +3,77 @@ module TradingApp
 open TradingLib
 
 module Fourier =
+    
+    type private Fourier<'T> private(factor: float, dir: float, l: Vector<int>,
+            init: Vector<int> -> Vector<'T> -> Vector.Buffer<Complex> -> bool) =
+        do assert (l.Size % 2 = 0)
+        let half = l.Size / 2
+        let zeroes = Vector.Create half (fun _ -> Complex(0.0, 0.0))
+        let factors: Vector<Complex> =
+            let phase(i: int) = dir * Complex.Pi * (float i) / (float l.Size)
+            Vector.Create l.Size (phase >> Complex)
 
-    let private getFactors (offset: float) (size: int) =
-        let phase(i: int) = offset * 2.0 * Complex.Pi * (float i) / (float size)
-        Vector.Create size (phase >> Complex)
+        let child (offset: int) =
+            let h = Vector.Create half (fun i -> l[2 * i + offset])
+            Fourier(factor, dir, h, init)
 
-    let private index (half: int) (offset: float) (factors: Vector<Complex>)
-                      (even: Vector<Complex>, odd: Vector<Complex>) (i: int) =
-       if i < half then (even[i] + factors[i] * odd[i]) / offset
-                   else (even[i - half] + factors[i] * odd[i - half]) / offset
+        let index (even: Vector<Complex>, odd: Vector<Complex>) (i: int): Complex =
+            if i < half then (even[i] + factors[i] * odd[i]) / factor
+                        else (even[i - half] + factors[i] * odd[i - half]) / factor
 
-    let private child (offset: int) (l: Vector<int>) =
-        let size: int = l.Size
-        assert (size % 2 = 0)
-        let half: int = size / 2 in Vector.Create half (fun i -> l[2 * i + offset])
+        let combine (output: Vector.Buffer<Complex>) (even, odd) =
+            output.Overwrite(index (even, odd))
 
-    type private FFT private(l: Vector<int>) =
-        let size: int = l.Size
-        do assert ((size = 1) || (size % 2 = 0))
-        let half: int = size / 2
-        let factors = getFactors -1.0 size
-        let data = Vector.Buffer(size, fun _ -> Complex(0, 0))
-        let f (z: Vector<float>) i = Complex(z[l[i]], 0.0)
-        let child offset = FFT(child offset l)
-        interface Node<Vector<float>, Vector<Complex>> with
-            member this.Size = size
+        interface Node<'T, Complex> with
             member this.Split() =
-                assert (size > 1) ; { Left = (child 0) ; Right = (child 0) }
+                assert (l.Size > 1)
+                { Left = (child 0) ; Right = (child 1) }
 
-            member this.Init(z: Vector<float>): Vector<Complex> =
-                assert ((z.Size = 1) && (l.Size = 1)) ; data.Overwrite(f z) ; data
+            member this.Init(input: Vector<'T>, output): bool =
+                assert ((input.Size = 1) && (output.Size = 1))
+                init l input output
 
-            member this.Combine(_, even, odd): Vector<Complex> =
-                assert ((even.Size = half) && (odd.Size = half))
-                data.Overwrite(index half 1.0 factors (even, odd)) ; data
+            member this.Combine(_, output, even, odd): bool =
+                match even, odd with
+                | Yes(e), Yes(o) -> combine output (e, o) ; true
+                | Yes(e), No -> combine output (e, zeroes) ; true
+                | No, Yes(o) -> combine output (zeroes, o) ; true
+                | No, No -> false
+        
+        static member Create(factor, dir, size: int, init): Tree<'T, Complex> =
+            let l = Vector.Create size <| fun i -> i + 1
+            let node: Node<'T, Complex> = Fourier(factor, dir, l, init)
+            Tree(node, (fun _ -> Complex(0.0, 0.0)))
 
-        static member Create size = Tree(FFT <| Vector.Create size (fun i -> i))
-
-    type private InvFFT private(l: Vector<int>) =
-        let size: int = l.Size
-        do assert ((size = 1) || (size % 2 = 0))
-        let half: int = size / 2
-        let factors = getFactors 1.0 size
-        let data = Vector.Buffer(size, fun _ -> Complex(0, 0))
-        let f (z: Vector<Complex>) i = z[l[i]]
-        let child offset = InvFFT(child offset l)
-        interface Node<Vector<Complex>, Pair<bool, Vector<Complex>>> with
+    type private FFT(size: int) =
+        let init (l: Vector<int>) (input: Vector<float>)
+                 (output: Vector.Buffer<Complex>) =
+            output.Overwrite(fun _ -> Complex(input[l[0]], 0.0)) ; true
+        let fourier = Fourier<float>.Create(1.0, -1.0, size, init)
+        member this.Eval(input: Vector<float>) = fourier.Eval(input)
+        interface Vector<float> with
             member this.Size = size
-            member this.Split() =
-                assert (size > 1) ; { Left = (child 0) ; Right = (child 0) }
+            member this.Item with get(k: int): float = fourier.Data[k].Real
 
-            member this.Init(z: Vector<Complex>): Pair<bool, Vector<Complex>> =
-                assert ((z.Size = 1) && (l.Size = 1)) ; data.Overwrite(f z)
-                { Left = (z[l[0]].Real = 0.0) ; Right = data }
+    type private InverseFFT(size: int) =
+        let init (l: Vector<int>) (input: Vector<Complex>)
+                 (output: Vector.Buffer<Complex>) =
+            let c: Complex = input[l[0]]
+            output.Overwrite(fun _ -> c) ; c.Zero()
+        let fourier = Fourier<Complex>.Create(2.0, 1.0, size, init)
+        member this.Eval(input: Vector<Complex>) = fourier.Eval(input)
+        interface Vector<Complex> with
+            member this.Size = size
+            member this.Item with get(k: int): Complex = fourier.Data[k]
 
-            member this.Combine(_, even, odd): Pair<bool, Vector<Complex>> =
-                assert ((even.Size = half) && (odd.Size = half))
-                data.Overwrite(index half 2.0 factors (even, odd)) ; data
-
-        static member Create size = Tree(InvFFT <| Vector.Create size (fun i -> i))
-
-
-
+(*
+type Node<'Input, 'Output> =
+    abstract Size: int
+    abstract Combine: Vector<'Input> * Vector.Buffer<'Output> *
+                      Maybe<Vector<'Output>> * Maybe<Vector<'Output>> -> bool
+    abstract Split: unit -> Pair<Node<'Input, 'Output>, Node<'Input, 'Output>>
+    abstract Init: Vector<'Input> * Vector.Buffer<'Output> -> bool
+    
     type Merge
     type Node<int, 'R> =
     abstract Size: int
@@ -72,8 +81,6 @@ module Fourier =
     abstract Split: unit -> Pair<Node<'T, 'R>>
     abstract Init: 'T -> 'R
 
-
-(*
 
 class MergeSort(N) # Use the same structor as FFT
         assert N % 2 = 0
