@@ -1,9 +1,9 @@
-module TradingApp
+namespace TradingApp
 
 open TradingLib
 
 module Fourier =
-    
+
     type private Fourier<'T> private(factor: float, dir: float, l: Vector<int>,
             init: Vector<int> -> Vector<'T> -> Vector.Buffer<Complex> -> bool) =
         do assert (l.Size % 2 = 0)
@@ -40,7 +40,7 @@ module Fourier =
                 | Yes(e), No -> combine output (e, zeroes) ; true
                 | No, Yes(o) -> combine output (zeroes, o) ; true
                 | No, No -> false
-        
+
         static member Create(factor, dir, size: int, init): Tree<'T, Complex> =
             let l = Vector.Create size <| fun i -> i + 1
             let node: Node<'T, Complex> = Fourier(factor, dir, l, init)
@@ -52,7 +52,7 @@ module Fourier =
             output.Overwrite(fun _ -> Complex(input[l[0]], 0.0)) ; true
         let fourier = Fourier<float>.Create(1.0, -1.0, size, init)
         member this.Eval(input: Vector<float>) = fourier.Eval(input)
-        member this.Data: Vector<Complex> = fourier
+        member this.Data: Vector<Complex> = fourier.Data
 
     type private InverseFFT(size: int) =
         let init (l: Vector<int>) (input: Vector<Complex>)
@@ -72,7 +72,7 @@ type Node<'Input, 'Output> =
                       Maybe<Vector<'Output>> * Maybe<Vector<'Output>> -> bool
     abstract Split: unit -> Pair<Node<'Input, 'Output>, Node<'Input, 'Output>>
     abstract Init: Vector<'Input> * Vector.Buffer<'Output> -> bool
-    
+
     type Merge
     type Node<int, 'R> =
     abstract Size: int

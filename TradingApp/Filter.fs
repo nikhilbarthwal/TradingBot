@@ -1,4 +1,4 @@
-namespace Trading.Maths
+namespace TradingApp
 
 open TradingLib
 

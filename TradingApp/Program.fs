@@ -18,8 +18,4 @@ module Program =
                 if e > threshold then (iterate <| k + 1) else true
         iterate 1
 
-
-
-
-
     printfn "Hello World!"
