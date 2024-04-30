@@ -25,6 +25,7 @@ module Fourier =
             output.Overwrite(index (even, odd))
 
         interface Node<'T, Complex> with
+            member this.Size = l.Size
             member this.Split() =
                 assert (l.Size > 1)
                 { Left = (child 0) ; Right = (child 1) }
@@ -51,20 +52,18 @@ module Fourier =
             output.Overwrite(fun _ -> Complex(input[l[0]], 0.0)) ; true
         let fourier = Fourier<float>.Create(1.0, -1.0, size, init)
         member this.Eval(input: Vector<float>) = fourier.Eval(input)
-        interface Vector<float> with
-            member this.Size = size
-            member this.Item with get(k: int): float = fourier.Data[k].Real
+        member this.Data: Vector<Complex> = fourier
 
     type private InverseFFT(size: int) =
         let init (l: Vector<int>) (input: Vector<Complex>)
                  (output: Vector.Buffer<Complex>) =
             let c: Complex = input[l[0]]
-            output.Overwrite(fun _ -> c) ; c.Zero()
+            output.Overwrite(fun _ -> c) ; not <| c.Zero()
         let fourier = Fourier<Complex>.Create(2.0, 1.0, size, init)
         member this.Eval(input: Vector<Complex>) = fourier.Eval(input)
-        interface Vector<Complex> with
+        interface Vector<float> with
             member this.Size = size
-            member this.Item with get(k: int): Complex = fourier.Data[k]
+            member this.Item with get(k: int): float = fourier.Data[k].Real
 
 (*
 type Node<'Input, 'Output> =

@@ -94,4 +94,8 @@ type Tree<'Input, 'Output>(z: Node<'Input, 'Output>, dummy: unit -> 'Output) =
         let f (t: Tree<'Input, 'Output>) = if t.Eval(x) then Yes(t.Data) else No
         match subTree with
         | No -> z.Init(x, data)
-        | Yes(sub) -> z.Combine(x, data, f(sub.Left), f(sub.Right))
+        | Yes(sub) -> z.Combine(x, data, f(sub.Left), f(sub.Right))    
+
+    interface Vector<'Output> with
+        member this.Item with get(i: int) = data[i]
+        member this.Size = z.Size
