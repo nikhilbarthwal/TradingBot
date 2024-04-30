@@ -1,72 +1,79 @@
 module TradingApp
 
+open TradingLib
+
+module Fourier =
+
+    let private getFactors (offset: float) (size: int) =
+        let phase(i: int) = offset * 2.0 * Complex.Pi * (float i) / (float size)
+        Vector.Create size (phase >> Complex)
+
+    let private index (half: int) (offset: float) (factors: Vector<Complex>)
+                      (even: Vector<Complex>, odd: Vector<Complex>) (i: int) =
+       if i < half then (even[i] + factors[i] * odd[i]) / offset
+                   else (even[i - half] + factors[i] * odd[i - half]) / offset
+
+    let private child (offset: int) (l: Vector<int>) =
+        let size: int = l.Size
+        assert (size % 2 = 0)
+        let half: int = size / 2 in Vector.Create half (fun i -> l[2 * i + offset])
+
+    type private FFT private(l: Vector<int>) =
+        let size: int = l.Size
+        do assert ((size = 1) || (size % 2 = 0))
+        let half: int = size / 2
+        let factors = getFactors -1.0 size
+        let data = Vector.Buffer(size, fun _ -> Complex(0, 0))
+        let f (z: Vector<float>) i = Complex(z[l[i]], 0.0)
+        let child offset = FFT(child offset l)
+        interface Node<Vector<float>, Vector<Complex>> with
+            member this.Size = size
+            member this.Split() =
+                assert (size > 1) ; { Left = (child 0) ; Right = (child 0) }
+
+            member this.Init(z: Vector<float>): Vector<Complex> =
+                assert ((z.Size = 1) && (l.Size = 1)) ; data.Overwrite(f z) ; data
+
+            member this.Combine(_, even, odd): Vector<Complex> =
+                assert ((even.Size = half) && (odd.Size = half))
+                data.Overwrite(index half 1.0 factors (even, odd)) ; data
+
+        static member Create size = Tree(FFT <| Vector.Create size (fun i -> i))
+
+    type private InvFFT private(l: Vector<int>) =
+        let size: int = l.Size
+        do assert ((size = 1) || (size % 2 = 0))
+        let half: int = size / 2
+        let factors = getFactors 1.0 size
+        let data = Vector.Buffer(size, fun _ -> Complex(0, 0))
+        let f (z: Vector<Complex>) i = z[l[i]]
+        let child offset = InvFFT(child offset l)
+        interface Node<Vector<Complex>, Pair<bool, Vector<Complex>>> with
+            member this.Size = size
+            member this.Split() =
+                assert (size > 1) ; { Left = (child 0) ; Right = (child 0) }
+
+            member this.Init(z: Vector<Complex>): Pair<bool, Vector<Complex>> =
+                assert ((z.Size = 1) && (l.Size = 1)) ; data.Overwrite(f z)
+                { Left = (z[l[0]].Real = 0.0) ; Right = data }
+
+            member this.Combine(_, even, odd): Pair<bool, Vector<Complex>> =
+                assert ((even.Size = half) && (odd.Size = half))
+                data.Overwrite(index half 2.0 factors (even, odd)) ; data
+
+        static member Create size = Tree(InvFFT <| Vector.Create size (fun i -> i))
+
+
+
+    type Merge
+    type Node<int, 'R> =
+    abstract Size: int
+    abstract Combine: 'T * 'R * 'R -> 'R
+    abstract Split: unit -> Pair<Node<'T, 'R>>
+    abstract Init: 'T -> 'R
+
+
 (*
-import numpy as np
-import random
-from typing import List
-import math
-
-
-def test(a, b):
-    if len(a) != len(b):
-        return False
-    for i in range(len(a)):
-        if round(abs(a[i] - b[i]), 5) != 0.0:
-            return False
-    return True
-
-
-class FFT:
-
-    def __init__(self, indexes: List[int], inverse: bool):
-        self.k = 2 if inverse else 1
-        self.indexes: List[int] = indexes
-        self.N: int = len(indexes)
-        if self.N > 1:
-            assert self.N % 2 == 0
-            self.even = FFT(
-                [indexes[i] for i in range(self.N) if i % 2 == 0], inverse)
-            self.odd = FFT(
-                [indexes[i] for i in range(self.N) if i % 2 == 1], inverse)
-            self.factor = []
-            for i in range(self.N):
-                k = 1 if inverse else -1
-                theta = k * 2 * np.pi * i / self.N
-                self.factor.append(math.cos(theta) + 1j * math.sin(theta))
-
-    def compute(self, x):
-        assert self.N > 0
-        if self.N == 1:
-            return [x[self.indexes[0]]]
-
-        assert self.N % 2 == 0
-        even = self.even.compute(x)
-        odd = self.odd.compute(x)
-        half = self.N // 2
-        assert len(even) == half
-        assert len(odd) == half
-        r = [0 + 0j] * self.N
-        for i in range(half):
-            r[i] = (even[i] + self.factor[i] * odd[i]) / self.k
-            r[half + i] = (even[i] + self.factor[half + i] * odd[i]) / self.k
-        return r
-
-
-def run(n):
-    indexes = list(range(2**n))
-    f = FFT(indexes, False)
-    inv_f = FFT(indexes, True)
-    x = [random.randint(0, 1000) for _ in indexes]
-    y = f.compute(x)
-    assert test(y, np.fft.fft(x))
-    assert test(x, inv_f.compute(y))
-
-
-run(10)
-
-_________________________________________________________________________________
-
-class FFT & IFFT
 
 class MergeSort(N) # Use the same structor as FFT
         assert N % 2 = 0

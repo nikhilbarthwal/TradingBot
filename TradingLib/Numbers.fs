@@ -47,6 +47,11 @@ type Complex(real: float, imaginary: float) =
     member this.Real = real
     member this.Imaginary = imaginary
 
+    new (phase: float) = Complex(Math.Cos(phase) , Math.Sin(phase))
+
+    static member (/) (c: Complex, f: float) = Complex(c.Real / f, c.Imaginary / f)
+    static member Pi: float = 3.141593
+
     static member (+) (c1: Complex, c2: Complex) =
         Complex(c1.Real + c2.Real, c1.Imaginary + c2.Imaginary)
 

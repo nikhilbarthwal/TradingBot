@@ -28,6 +28,8 @@ module Utils =
 
     let inline Elapsed (time: DateTime) = DateTime.Now > time
 
+    let inline Range(n: int) = [0 .. (n-1)]
+
 
 module Log =
 

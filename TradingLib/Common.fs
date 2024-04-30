@@ -3,7 +3,7 @@ namespace TradingLib
 
 [<Struct>] type Maybe<'T> = Yes of 'T | No
 
-[<Struct>] type Pair<'T> = { Left: 'T ; Right: 'T }
+[<Struct>] type Pair<'Left, 'Right> = { Left: 'Left ; Right: 'Right }
 
 
 type Vector<'T> =
@@ -74,8 +74,8 @@ type MatrixVar<'T> = Matrix<'T, Vector.Buffer<'T>>
 
 type Node<'T, 'R> =
     abstract Size: int
-    abstract Combine: ('T * 'R * 'R) -> 'R
-    abstract Split: unit -> Pair<Node<'T, 'R>>
+    abstract Combine: 'T * 'R * 'R -> 'R
+    abstract Split: unit -> Pair<Node<'T, 'R>, Node<'T, 'R>>
     abstract Init: 'T -> 'R
 
 type Tree<'T, 'R, 'N when 'N :> Node<'T, 'R>>(z: 'N) =
@@ -89,5 +89,5 @@ type Tree<'T, 'R, 'N when 'N :> Node<'T, 'R>>(z: 'N) =
     member this.Eval(x: 'T): 'R =
         match subTree with
         | No -> z.Init(x)
-        | Yes(sub) -> let left, right = sub.Left.Eval(x), sub.Right.Eval(x)
+        | Yes(sub) -> let left = sub.Left.Eval(x) in let right = sub.Right.Eval(x)
                       z.Combine(x, left, right)
