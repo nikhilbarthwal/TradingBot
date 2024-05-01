@@ -4,22 +4,30 @@ open TradingLib
 
 module Fourier =
 
+    let private factors (dir: float) (size: int): Vector<Complex> =
+        let phase(i: int) = dir * Complex.Pi * (float i) / (float size)
+        Vector.Create size (phase >> Complex)
+    
+    let private index (even: Vector<Complex>, odd: Vector<Complex>)
+                      (factors: Vector<Complex>) (half: int) (factor: float)
+                      (i: int): Complex =
+        if i < half then (even[i] + factors[i] * odd[i]) / factor
+                    else (even[i - half] + factors[i] * odd[i - half]) / factor
+                    
+    let private split (l: Vector<int>) (offset: int) =
+        assert (l.Size % 2 = 0)
+        let half = l.Size / 2 in Vector.Create half (fun i -> l[2 * i + offset])
+
+
     type private Fourier<'T> private(factor: float, dir: float, l: Vector<int>,
             init: Vector<int> -> Vector<'T> -> Vector.Buffer<Complex> -> bool) =
         do assert (l.Size % 2 = 0)
         let half = l.Size / 2
         let zeroes = Vector.Create half (fun _ -> Complex(0.0, 0.0))
-        let factors: Vector<Complex> =
-            let phase(i: int) = dir * Complex.Pi * (float i) / (float l.Size)
-            Vector.Create l.Size (phase >> Complex)
 
-        let child (offset: int) =
-            let h = Vector.Create half (fun i -> l[2 * i + offset])
-            Fourier(factor, dir, h, init)
 
-        let index (even: Vector<Complex>, odd: Vector<Complex>) (i: int): Complex =
-            if i < half then (even[i] + factors[i] * odd[i]) / factor
-                        else (even[i - half] + factors[i] * odd[i - half]) / factor
+
+
 
         let combine (output: Vector.Buffer<Complex>) (even, odd) =
             output.Overwrite(index (even, odd))
@@ -34,7 +42,7 @@ module Fourier =
                 assert ((input.Size = 1) && (output.Size = 1))
                 init l input output
 
-            member this.Combine(_, output, even, odd): bool =
+            member this.Combine(_, output, even, odd): Maybe< =
                 match even, odd with
                 | (true, e) , (true, o) -> combine output (e, o) ; true
                 | (true, e) , (false, _) -> combine output (e, zeroes); true
