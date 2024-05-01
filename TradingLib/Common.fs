@@ -75,7 +75,7 @@ type MatrixVar<'T> = Matrix<'T, Vector.Buffer<'T>>
 type Node<'Input, 'Output> =
     abstract Size: int
     abstract Combine: Vector<'Input> * Vector.Buffer<'Output> *
-                      Maybe<Vector<'Output>> * Maybe<Vector<'Output>> -> bool
+                      (bool * Vector<'Output>) * (bool * Vector<'Output>) -> bool
     abstract Split: unit -> Pair<Node<'Input, 'Output>, Node<'Input, 'Output>>
     abstract Init: Vector<'Input> * Vector.Buffer<'Output> -> bool
 
@@ -91,7 +91,7 @@ type Tree<'Input, 'Output>(z: Node<'Input, 'Output>, dummy: unit -> 'Output) =
 
     member this.Data: Vector<'Output> = data
     member this.Eval(x: Vector<'Input>): bool =
-        let f (t: Tree<'Input, 'Output>) = if t.Eval(x) then Yes(t.Data) else No
+        let f (t: Tree<'Input, 'Output>) = t.Eval(x), t.Data
         match subTree with
         | No -> z.Init(x, data)
         | Yes(sub) -> z.Combine(x, data, f(sub.Left), f(sub.Right))

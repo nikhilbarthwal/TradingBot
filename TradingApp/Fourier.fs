@@ -36,10 +36,10 @@ module Fourier =
 
             member this.Combine(_, output, even, odd): bool =
                 match even, odd with
-                | Yes(e), Yes(o) -> combine output (e, o) ; true
-                | Yes(e), No -> combine output (e, zeroes) ; true
-                | No, Yes(o) -> combine output (zeroes, o) ; true
-                | No, No -> false
+                | (true, e) , (true, o) -> combine output (e, o) ; true
+                | (true, e) , (false, _) -> combine output (e, zeroes); true
+                | (false, _) , (true, o) -> combine output (zeroes, o) ; true
+                | (false, _) , (false, _) -> false
 
         static member Create(factor, dir, size: int, init): Tree<'T, Complex> =
             let l = Vector.Create size <| fun i -> i + 1
@@ -60,18 +60,43 @@ module Fourier =
             let c: Complex = input[l[0]]
             output.Overwrite(fun _ -> c) ; not <| c.Zero()
         let fourier = Fourier<Complex>.Create(2.0, 1.0, size, init)
-        member this.Eval(input: Vector<Complex>) = fourier.Eval(input)
+        member this.Eval(input: Vector<Complex>) =
+#if DEBUG
+            let b = fourier.Eval(input) in (assert b)
+#else
+            fourier.Eval(input)
+#endif
         interface Vector<float> with
             member this.Size = size
             member this.Item with get(k: int): float = fourier.Data[k].Real
 
+    type private Sort(l: Vector<int>) =
+        let half: int = l.Size / 2
+        let child offset = Vector.Create half (fun i -> l[offset + i])
+        let combine (input: Vector<float>) (output: Vector.Buffer<int>)
+                    (_, left: Vector<int>) (_, right: Vector<int>): bool =
+            let mutable i = 0
+            let mutable j = 0
+            let mutable k = 0
+            while (i < half) && (j < half) do
+                    
+                    
+                    true // COMPLETE HERE!
+
+        interface Node<float, int> with
+            member this.Size = l.Size
+            member this.Init(_, _) = true
+            member this.Split() =  { Left = Sort(child 0) ; Right = Sort(child 1) }
+            member this.Combine (input, output, left, right) =
+                combine input output left right
+
+        
 (*
 type Node<'Input, 'Output> =
-    abstract Size: int
     abstract Combine: Vector<'Input> * Vector.Buffer<'Output> *
                       Maybe<Vector<'Output>> * Maybe<Vector<'Output>> -> bool
     abstract Split: unit -> Pair<Node<'Input, 'Output>, Node<'Input, 'Output>>
-    abstract Init: Vector<'Input> * Vector.Buffer<'Output> -> bool
+
 
     type Merge
     type Node<int, 'R> =
