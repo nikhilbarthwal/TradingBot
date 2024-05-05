@@ -1,4 +1,4 @@
-app=CryptoBot
+app=SampleBot
 version=net8.0
 os=$(shell uname -s)
 sources=$(wildcard */*.fs */*/*.fs */*.fsproj *.sln)

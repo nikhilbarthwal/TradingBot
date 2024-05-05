@@ -1,6 +1,5 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CryptoBot", "CryptoBot\CryptoBot.fsproj", "{BB3A095D-44D8-4D58-92A6-FC2BB8BAEF21}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "SampleBot", "SampleBot\SampleBot.fsproj", "{BB3A095D-44D8-4D58-92A6-FC2BB8BAEF21}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TradingLib", "TradingLib\TradingLib.fsproj", "{C3102B36-7156-4EF1-ADA0-BA0193C75C20}"
 EndProject

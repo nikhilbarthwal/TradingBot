@@ -1,4 +1,6 @@
-namespace CryptoBot
+// This example is for illustration purposes only.
+
+namespace SampleBot
 
 open TradingLib
 open System
