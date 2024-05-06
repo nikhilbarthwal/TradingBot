@@ -30,19 +30,19 @@ module Program =
         let apiSecret = Environment.GetEnvironmentVariable("ALPACA_API_SECRET")
         let strategy = DoubleMovingAverage(size/2, size, 10u)
         let alpaca = Alpaca(apiKey, apiSecret) :> Client<Guid>
-        let buffer = Buffer.Linear(1, 5)
-        let source = Gemini.Source({| Tickers = [Crypto("BTC")]
+        let buffer = Buffer.Linear(5, 5)
+        let source = Gemini.Source({| Tickers = [Crypto("BTC") ; Crypto("ETH")]
                                       Size = size
                                       Buffer = buffer
                                       AskBidDifference = 0.5
                                       Timeout = 15 |})
         interface Execution<Guid> with
-            member this.Welcome: string = "This is a demo"
+            member this.Welcome: string = "This is a Sample"
             member this.StartTime = No
             member this.EndTime = No
-            member this.InitialCapital = 1000.0
-            member this.TargetCapital = 1000.0
-            member this.StopLossCapital = 1000.0
+            member this.InitialCapital = 100.0 * 1000.0
+            member this.TargetProfit = 50.0 * 1000.0
+            member this.StopLoss = 20.0 * 1000.0
             member this.Client(): Client<Guid> = alpaca
             member this.Strategy() = strategy
             member this.Source() = source
