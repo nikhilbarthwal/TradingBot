@@ -8,8 +8,8 @@ type Execution<'T> =
     abstract StartTime: Maybe<System.DateTime>
     abstract EndTime: Maybe<System.DateTime>
     abstract InitialCapital: float
-    abstract TargetCapital: float
-    abstract StopLossCapital: float
+    abstract TargetProfit: float
+    abstract StopLoss: float
     abstract Strategy: unit -> Strategy
     abstract Client: unit -> Client<'T>
     abstract Source: unit -> Data.Source
@@ -51,9 +51,9 @@ module Execution =
 
     let stop (execution: Execution<'T>) (client: Client<'T>): Maybe<bool> =
         let info = client.AccountInfo()
-        match info.Total with
-        | balance when balance >= execution.TargetCapital -> Yes(true)
-        | balance when balance <= execution.StopLossCapital -> Yes(false)
+        match info.Profit with
+        | profit when profit >= execution.TargetProfit -> Yes(true)
+        | profit when -1.0 * profit >= execution.StopLoss -> Yes(false)
         | _ -> match execution.EndTime with
                | Yes(t) -> if t >= System.DateTime.Now then Yes(false) else No
                | No -> No
