@@ -64,7 +64,7 @@ type Bar (param: struct {| Open: float; High: float; Low: float
     member this.Epoch = param.Time
     member this.Volume = param.Volume
     member this.Timestamp = Utils.ToDateTime(param.Time)
-    member this.Price = (this.High + this.Low) / 2.0
+    member this.Price = Utils.Normalize((this.High + this.Low) / 2.0)
     override this.ToString() =
         let ts = this.Timestamp.ToString("F")
         $"Open: {this.Open} / High: {this.High} / Close: {this.Close} / Low: " +
