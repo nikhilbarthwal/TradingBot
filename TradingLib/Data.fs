@@ -8,12 +8,12 @@ module Data =
     type Store = abstract member Insert: Bar -> unit
                  abstract member Reset: unit -> unit
 
-    type private Vault(size: int, buffer: Buffer) =
+    type private Vault(ticker: Ticker, size: int, buffer: Buffer) =
         let object = System.Object()
         let data = Vector.Circular(size, fun _ -> Bar())
         let insert bar = lock object (fun _ -> data.Insert(bar))
         let reset() = lock object (fun _ -> data.Reset())
-        let ingest = buffer insert
+        let ingest = buffer ticker insert
         interface Store with
             member this.Insert(bar: Bar) = if not (ingest.Append bar) then reset()
             member this.Reset() = reset()
@@ -22,8 +22,9 @@ module Data =
 
 
     type Exchange(tickers: Ticker list, size: int, buffer: Buffer) =
+        let vault ticker = Vault(ticker, size, buffer)
         let reader, writer =
-            let map = Utils.CreateDictionary(tickers, fun _ -> Vault(size, buffer))
+            let map = Utils.CreateDictionary(tickers, vault)
             (Utils.CreateDictionary(tickers, fun ticker -> map[ticker] :> Data),
              Utils.CreateDictionary(tickers, fun ticker -> map[ticker] :> Store))
 

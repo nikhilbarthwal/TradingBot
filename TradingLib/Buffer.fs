@@ -44,13 +44,14 @@ module Buffer =
         member this.Reset() =
             pos <- 0 ; for i in [0 .. size - 1] do buckets[i].Reset()
 
-    type private LinearBuffer(interval: time, size: int, output: Bar -> unit) =
+    type private LinearBuffer(ticker: Ticker, interval: time,
+                              size: int, output: Bar -> unit) =
 
         let buckets = Buckets(size)
         let mutable previous: time = 0L
         let floor (t:time) = t - (t % (int64 interval))
 
-        let extrapolate (diff: int) (output: Bar -> unit): unit =
+        let extrapolate (diff: int): unit =
 #if DEBUG
             assert (diff > 0)
             assert (buckets[0].Count > 0)
@@ -65,12 +66,16 @@ module Buffer =
             for k in [1 .. diff] do
                 let r = (float <| k-1) / (float diff)
                 let dv = int64 <| (float <| (curr.Volume - prev.Volume)) * r
-                output <| Bar({| Open   = f(prev.Open, curr.Open) r
+                let bar = Bar({| Open   = f(prev.Open, curr.Open) r
                                  Close  = f(prev.Close, curr.Close) r
                                  High   = f(prev.High, curr.High) r
                                  Low    = f(prev.Low, curr.Low) r
                                  Time   = previous + interval * (int64 <| k - 1)
                                  Volume = prev.Volume + dv |})
+#if DEBUG
+                Log.Info("Data", $"Price for {ticker} is {bar.Price} @ {bar.Epoch}")
+#endif
+                output <| bar
 
         interface Ingest with
             member this.Append(input: Bar): bool =
@@ -88,11 +93,12 @@ module Buffer =
                     else
                         buckets[diff].Add input
                         if diff > 0 then
-                            extrapolate diff output
+                            extrapolate diff
                             buckets.Shift(diff)
                         previous <- current ; true
 
-    let Linear(interval, size) output: Ingest = LinearBuffer(interval, size, output)
+    let Linear(interval, size) ticker output: Ingest =
+        LinearBuffer(ticker, interval, size, output)
 
 
-type Buffer = (Bar -> unit) -> Buffer.Ingest
+type Buffer = Ticker -> (Bar -> unit) -> Buffer.Ingest
