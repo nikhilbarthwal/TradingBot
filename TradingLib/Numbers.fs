@@ -47,6 +47,11 @@ type Complex(real: float, imaginary: float) =
     member this.Real = real
     member this.Imaginary = imaginary
 
+    static member Arc (p: int, q: int): Complex =
+         let pi = 3.141593
+         let phase = 2.0 * pi * (float p) / (float q)
+         Complex(Math.Cos phase, Math.Sin phase)
+
     static member (+) (c1: Complex, c2: Complex) =
         Complex(c1.Real + c2.Real, c1.Imaginary + c2.Imaginary)
 
@@ -57,5 +62,7 @@ type Complex(real: float, imaginary: float) =
         let real = c1.Real * c2.Real - c1.Imaginary * c2.Imaginary
         let imaginary = c1.Real * c2.Imaginary + c1.Imaginary * c2.Real
         Complex(real, imaginary)
+
+    static member (/) (c: Complex, f: float) = Complex(c.Real/f, c.Imaginary/f)
 
     override this.ToString() = $"{this.Real} + {this.Imaginary}i"
