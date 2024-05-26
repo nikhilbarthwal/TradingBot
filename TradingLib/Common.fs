@@ -72,24 +72,3 @@ type Matrix<'V, 'T when 'T :> Vector<'V>> private(rows: int, f: int -> 'T) =
 
 type MatrixConst<'T> = Matrix<'T, Vector<'T>>
 type MatrixVar<'T> = Matrix<'T, Vector.Buffer<'T>>
-
-
-type Node<'T, 'R> =
-    abstract Size: int
-    abstract Combine: ('T * 'R * 'R) -> 'R
-    abstract Split: unit -> Pair<Node<'T, 'R>>
-    abstract Init: 'T -> 'R
-
-type Tree<'T, 'R, 'N when 'N :> Node<'T, 'R>>(z: 'N) =
-    let subTree = if z.Size = 1 then No else
-                      assert (z.Size % 2 = 0)
-                      let half = z.Size / 2
-                      let sub = z.Split()
-                      assert ((sub.Left.Size = half) && (sub.Right.Size = half))
-                      Yes({Left = Tree(sub.Left) ; Right = Tree(sub.Right)})
-
-    member this.Eval(x: 'T): 'R =
-        match subTree with
-        | No -> z.Init(x)
-        | Yes(sub) -> let left, right = sub.Left.Eval(x), sub.Right.Eval(x)
-                      z.Combine(x, left, right)
