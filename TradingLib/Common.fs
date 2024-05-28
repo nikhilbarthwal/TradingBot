@@ -26,7 +26,7 @@ module Vector =
 
     let Create<'T>(size: int) (f: int -> 'T): Vector<'T> = Buffer(size, f)
 
-    let Sequence (n: int) = Create n (fun i -> i + 1)
+    let Sequence (n: int) = Create n (fun i -> i)
 
     let inline Convolve<'T when ^T: (static member (*) : 'T * 'T -> 'T)
                             and ^T: (static member (+) : 'T * 'T -> 'T)>

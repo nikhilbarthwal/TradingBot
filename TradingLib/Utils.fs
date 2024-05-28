@@ -18,6 +18,7 @@ module Utils =
 
     let inline Normalize(x: float) = Math.Round(x, 3)
     let inline CurrentTime() = DateTime.Now.ToString("F")
+    let inline Diff (a: float, b: float) = Normalize(100.0 * (a-b) / b)
 
     let CreateDictionary<'V, 'K when 'K: equality>(l: 'K list, f: 'K -> 'V) =
         let data = System.Collections.Generic.Dictionary<'K, 'V>(l.Length)
