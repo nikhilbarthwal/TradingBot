@@ -46,6 +46,7 @@ type Fraction private (n0: bigint, d0: bigint) =
 type Complex(real: float, imaginary: float) =
     member this.Real = real
     member this.Imaginary = imaginary
+    member this.Magnitude() = real * real + imaginary * imaginary
 
     static member Arc (p: int, q: int): Complex =
          let pi = 3.141593
