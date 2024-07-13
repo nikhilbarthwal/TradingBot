@@ -98,7 +98,7 @@ module Buffer =
                             buckets.Shift(diff)
                         previous <- current ; true
 
-    let Linear(interval, size) ticker output: Ingest =
+    let Linear(interval: time, size: int) ticker output: Ingest =
         LinearBuffer(ticker, interval, size, output)
 
 

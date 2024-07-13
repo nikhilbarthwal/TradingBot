@@ -11,6 +11,10 @@ type Dictionary<'K,'V> = System.Collections.Immutable.ImmutableDictionary<'K,'V>
 
 module Utils =
 
+    let Ascii (inp: string): string =
+        let bytes = System.Text.Encoding.ASCII.GetBytes(inp)
+        System.Text.Encoding.UTF8.GetString(bytes, 0, bytes.Length).Replace("?", " ")
+
     let ToDateTime(epoch: int64): DateTime =
         let dateTimeOffset  = DateTimeOffset.FromUnixTimeSeconds(epoch)
         let estZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time")
