@@ -33,6 +33,7 @@ module Buffer =
         let mutable pos = 0
         let buckets = [| for _ in [1 .. size] do Bucket() |]
         let index k = (pos + k) % size
+        do assert (size > 1)
 
         member this.Item with get(k: int) = buckets[index(k)]
         member this.Previous() = buckets[pos].Data.Epoch

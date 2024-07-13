@@ -56,11 +56,16 @@ module Order =
 type Bar (param: struct {| Open: float; High: float; Low: float
                            Close: float; Time: time; Volume: int64 |}) =
 
-    //TODO: Add a Valid parameter
-    member this.Open = Utils.Normalize(param.Open)
-    member this.High = Utils.Normalize(param.High)
-    member this.Low = Utils.Normalize(param.Low)
-    member this.Close = Utils.Normalize(param.Close)
+    member this.Open = assert (param.Low <= param.Open)
+                       assert (param.High >= param.Open)
+                       Utils.Normalize(param.Open)
+
+    member this.Close = assert (param.Low <= param.Close)
+                        assert (param.High >= param.Close)
+                        Utils.Normalize(param.Open)
+
+    member this.High = assert (param.Low <= param.High) ; Utils.Normalize(param.High)
+    member this.Low = assert (param.Low <= param.High) ; Utils.Normalize(param.Low)
     member this.Epoch = param.Time
     member this.Volume = param.Volume
     member this.Timestamp = Utils.ToDateTime(param.Time)
